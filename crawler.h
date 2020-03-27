@@ -17,6 +17,15 @@
 #define MAX_URL_SIZE 1000
 #define END_OF_HTTP_HEADER "\r\n\r\n"
 #define CONTENT_LENGTH "Content-Length: "
+#define CONTENT_TYPE "Content-Type: "
+#define STATUS_CODE "HTTP/1.1 "
+#define VALID_MIME_TYPE "text/html"
+#define NULL_BYTE 1
+#define SEND_BUFFER_LENGTH 2000
+#define RECEIVED_BUFFER_LENGTH 3000
+#define TRUE 1
+#define FALSE 0
+
 #define NO_SOCKET_OPENED 0
 
 
@@ -26,13 +35,13 @@ typedef struct queueForURLs{
 } queueForURLs;
 
 /* Function Prototypes */
-void fetchWebPage(char URL[], int numberOfPagesFetched);
 int parseHTTPHeaders(char *buffer);
 void parseHTML(char buffer[]);
 int checkIfValidURL(char possibleURL[]);
 void enqueueURL(char *URL);
 void printStack(void);
 void dequeueURL(char *URL);
+char * getHost(char URL[]);
 
 
 
