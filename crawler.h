@@ -20,19 +20,29 @@
 #define CONTENT_TYPE "Content-Type: "
 #define STATUS_CODE "HTTP/1.1 "
 #define VALID_MIME_TYPE "text/html"
+#define NULL_BYTE_CHARACTER '\0'
 #define NULL_BYTE 1
 #define SEND_BUFFER_LENGTH 2000
 #define RECEIVED_BUFFER_LENGTH 3000
 #define TRUE 1
 #define FALSE 0
 
+
 #define NO_SOCKET_OPENED 0
 
 
 typedef struct queueForURLs{
-    char data[MAX_URL_SIZE];
+    char data[MAX_URL_SIZE + NULL_BYTE];
     struct queueForURLs *nextNode;
 } queueForURLs;
+
+typedef struct URLInfo {
+    char fullURL[MAX_URL_SIZE + NULL_BYTE];
+    char hostname[MAX_URL_SIZE + NULL_BYTE];
+    char firstComponentOfHostname[MAX_URL_SIZE + NULL_BYTE];
+    char path[MAX_URL_SIZE + NULL_BYTE];
+    struct URLInfo *nextNode;
+} URLInfo;
 
 /* Function Prototypes */
 int parseHTTPHeaders(char *buffer);
@@ -40,8 +50,8 @@ void parseHTML(char buffer[]);
 int checkIfValidURL(char possibleURL[]);
 void enqueueURL(char *URL);
 void printStack(void);
-void dequeueURL(char *URL);
-char * getHost(char URL[]);
+void dequeueURL(URLInfo *toFetchURL);
+void parseURL();
 
 
 
