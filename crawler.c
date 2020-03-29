@@ -18,6 +18,9 @@ int totalURLs = 0;
 int main(int argc,char *argv[]) {
 
 
+    enqueueURL(argv[1]);
+    parseURL(NULL);
+
     int socketFD;
     char sendBuff[SEND_BUFFER_LENGTH] = {0};
     struct sockaddr_in serv_addr;
@@ -64,8 +67,9 @@ int main(int argc,char *argv[]) {
 
     //Check if command line URL is valid
     if (checkIfValidURL(host) == IS_VALID){
-        //parseURL(URL);
         enqueueURL(host);
+        //parseURL(URL);
+
         totalURLs++;
     } else {
         printf("Given URL is not Valid");
@@ -180,11 +184,15 @@ int main(int argc,char *argv[]) {
             memset(recvBuff, 0, strlen(recvBuff));
 
         }
+
+        //Print the URL just parsed to the stdout
+        //printf("http://%s%s",currentURL->hostname,currentURL->path);
+
         free(currentURL);
     }
     printf("\nContent Length: %d, Total URL's: %d\n",total,totalURLs);
 
-    printStack();
+    //printStack();
     return 0;
 }
 
@@ -314,64 +322,120 @@ int checkIfValidURL(char possibleURL[])
 /*
  *  A function that returns the host of a given URL
  */
-void parseURL() {
-
-    char * newURLTemp;
-    //strcpy(newURLTemp, newURL->fullURL);
-
-    //newURLTemp = &(new)
-
-    //strcpy(newURL->firstComponentOfHostname, currentURL.firstComponentOfHostname);
+void parseURL(URLInfo * currentURL) {
 
 
-    char * startOfHostName;
 
+    char * pointerURL = &(pointerTopURL->fullURL[0]);
+
+
+
+
+    char * firstDot;
+    int fdi, fchLength;
+    int gotHostname = 0;
+
+    char *firstSlash;
+    int fsi;
+
+    char * endURL;
+    int eURLi;
 
     //Check if URL is Absolute (Fully Specified)
-    if(strcasestr(newURLTemp,"http://") != NULL) {
-
-        newURLTemp = &(newURLTemp[9]);
+    if(strcasestr(pointerTopURL->fullURL,"http://") != NULL) {
+        pointerURL = &(pointerTopURL->fullURL[7]);
         //If so move pointer to the character after the last /
 
     }
     //Check if URL is Absolute (Implied Protocol)
-    else if (strstr(newURLTemp,"//") != NULL) {
+    else if (strstr(pointerTopURL->fullURL,"//") != NULL) {
         //If so move pointer to the character after the last /
+        pointerURL = &(pointerTopURL->fullURL[2]);
 
 
     }
     //Check if URL is Absolute (Implied Protocol and Hostname)
-    else if (newURLTemp[0] == '/'){
-        //Hostname == current URL's Hostname
-        //strcpy(newURL->hostname, currentURL.hostname);
-        //If so move pointer to the character after the last /
+    else if (pointerTopURL->fullURL[0] == '/'){
+        //strcpy(pointerTopURL->hostname,currentURL->hostname);
+        //strcpy(pointerTopURL->firstComponentOfHostname,currentURL->firstComponentOfHostname);
+        strcpy(pointerTopURL->hostname,"test.com");
+        strcpy(pointerTopURL->firstComponentOfHostname,"test");
 
+        pointerURL = &(pointerTopURL->fullURL[1]);
+
+
+        firstSlash = strchr(pointerURL, '\0');
+        fsi = (firstSlash ? firstSlash - pointerURL : -1);
+        memcpy(pointerTopURL->path, &pointerURL[0], fsi);
+        pointerTopURL->path[fsi] = NULL_BYTE_CHARACTER;
+
+        //Therefore path = ""
+        //strcpy(pointerTopURL->path,"");
+
+        //If so move pointer to the character after the last /
+        printf("Full URL: %s\n",pointerTopURL->fullURL);
+        printf("First Component of Hostname: %s\n",pointerTopURL->firstComponentOfHostname);
+        printf("Hostname: %s\n",pointerTopURL->hostname);
+        printf("Path: %s\n",pointerTopURL->path);
+        return;
     }
 
 
     //Pointer is now pointing to the beginning of the hostname
 
-    //get the first component of the hostname.
-    //strchr(newURLTemp, '.')
-    //strcpy(newURL->firstComponentOfHostname, newURLTemp[0] ~ index of .);
+        //get the first component of the hostname.
+    if((firstDot = strchr(pointerURL, '.')) != NULL) {
+        fdi = (firstDot ? firstDot - pointerURL : -1);
+
+        memcpy(pointerTopURL->firstComponentOfHostname, &pointerURL[0], fdi);
+        pointerTopURL->firstComponentOfHostname[fdi] = NULL_BYTE_CHARACTER;
+    } else{
+        endURL = strchr(pointerURL, '\0');
+        eURLi = (endURL ? endURL - pointerURL : -1);
+        memcpy(pointerTopURL->firstComponentOfHostname, &pointerURL[0], eURLi);
+        pointerTopURL->path[eURLi] = NULL_BYTE_CHARACTER;
+    }
+
+    //Pointer is still pointing to the beginning of the hostname
 
     //Find the end of the hostname
-    //strchr(newURLTemp, '/')
 
+
+    if ((firstSlash = strchr(pointerURL, '/'))!= NULL) {
+
+        fsi = (firstSlash ? firstSlash - pointerURL : -1);
+
+
+        memcpy(pointerTopURL->hostname, &pointerURL[0], fsi);
+        pointerTopURL->hostname[fsi] = NULL_BYTE_CHARACTER;
+
+
+        pointerURL = &(pointerURL[fsi]);
+
+        endURL = strchr(pointerURL, '\0');
+        eURLi = (endURL ? endURL - pointerURL : -1);
+        memcpy(pointerTopURL->path, &pointerURL[0], eURLi);
+        pointerTopURL->path[eURLi] = NULL_BYTE_CHARACTER;
+
+
+
+    }
+    else
     //If above == NUll that means there is no path
-    //Therefore path = ""
-    //strcpy(newURL->hostname, newURLTemp[0] ~ index of /);
+    {
+        firstSlash = strchr(pointerURL, '\0');
+        fsi = (firstSlash ? firstSlash - pointerURL : -1);
+        memcpy(pointerTopURL->hostname, &pointerURL[0], fsi);
+        pointerTopURL->hostname[fsi] = NULL_BYTE_CHARACTER;
 
+        //Therefore path = ""
+        strcpy(pointerTopURL->path,"");
+    }
 
-    //Pointer is now pointing to the end of the hostname
-
-
-    //Get the path
-    // strcpy(newURL->path, newURLTemp[0] ~ end of string);
-
-
-
-
+    printf("Full URL: %s\n",pointerTopURL->fullURL);
+    printf("First Component of Hostname: %s\n",pointerTopURL->firstComponentOfHostname);
+    printf("Hostname: %s\n",pointerTopURL->hostname);
+    printf("Path: %s\n",pointerTopURL->path);
 }
 
 void dequeueURL(URLInfo *toFetchURL){

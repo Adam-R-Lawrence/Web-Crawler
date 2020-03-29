@@ -51,7 +51,7 @@ int checkIfValidURL(char possibleURL[]);
 void enqueueURL(char *URL);
 void printStack(void);
 void dequeueURL(URLInfo *toFetchURL);
-void parseURL();
+void parseURL(URLInfo * currentURL);
 
 
 
