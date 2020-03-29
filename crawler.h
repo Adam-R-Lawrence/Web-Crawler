@@ -22,7 +22,7 @@
 #define VALID_MIME_TYPE "text/html"
 #define NULL_BYTE_CHARACTER '\0'
 #define NULL_BYTE 1
-#define SEND_BUFFER_LENGTH 2000
+#define SEND_BUFFER_LENGTH 2100
 #define RECEIVED_BUFFER_LENGTH 3000
 #define TRUE 1
 #define FALSE 0
@@ -45,8 +45,7 @@ typedef struct URLInfo {
 } URLInfo;
 
 /* Function Prototypes */
-int parseHTTPHeaders(char *buffer);
-void parseHTML(char buffer[]);
+void parseHTML(char buffer[], URLInfo *currentURL);
 int checkIfValidURL(char possibleURL[]);
 void enqueueURL(char *URL);
 void printStack(void);
