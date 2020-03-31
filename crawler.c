@@ -7,7 +7,9 @@
 #include <stdlib.h>
 #include <netdb.h>
 #include "crawler.h"
-#include <regex.h>
+
+#include <unistd.h>
+
 
 URLInfo *pointerBottomURL = NULL;
 URLInfo *pointerTopURL = NULL;
@@ -25,7 +27,7 @@ int main(int argc,char *argv[]) {
     }
 
     //Check if command line URL is valid
-    if (checkIfValidURL(argv[1],NULL) == IS_VALID_URL){
+    if (checkIfValidURL(argv[1]) == IS_VALID_URL){
 
         enqueueURL(argv[1]);
         parseURL(NULL);
@@ -83,6 +85,7 @@ int main(int argc,char *argv[]) {
         ///printf("Number of Pages Fetched: %d\n",numberOfPagesFetched);
 
         currentURL = malloc(sizeof(URLInfo));
+
         dequeueURL(currentURL);
         ///printf("Full URL: %s\n", currentURL->fullURL);
         ///printf("First Component: %s\n", currentURL->firstComponentOfHostname);
@@ -91,14 +94,35 @@ int main(int argc,char *argv[]) {
 
 
 
+        if((strcmp(currentURL->firstComponentOfHostname,givenFirstComponentOfHostname) == 0) && pointerTopURL != NULL){
+            free(currentURL);
+            continue;
+        }
 
+        if(checkHistory(currentURL) == IS_NOT_VALID_URL){
+            printf("\nDuplicate: %s\n",currentURL->fullURL);
+            free(currentURL);
+            continue;
+        }
+
+
+        //Details of the Server
+        server = gethostbyname(currentURL->hostname);
+        if(server == NULL){
+            //fprintf(stderr,"NotValidHostname\n");
+            free(currentURL);
+            continue;
+        }
 
 
         //Create the socket
         socketFD = socket(AF_INET, SOCK_STREAM, 0);
         if(socketFD < NO_SOCKET_OPENED) {
-            printf("Error with opening socket\n");
-            exit(EXIT_FAILURE);
+            //printf("Error with opening socket\n");
+            //exit(EXIT_FAILURE);
+            perror("socket error\n");
+            free(currentURL);
+            continue;
         } else {
             ///fprintf(stderr,"Socket opened successfully.\n");
         }
@@ -110,13 +134,7 @@ int main(int argc,char *argv[]) {
         memset(sendBuff, '0', sizeof(sendBuff));
 
 
-        //Details of the Server
-        server = gethostbyname(currentURL->hostname);
-        if(server == NULL){
-            //fprintf(stderr,"NotValidHostname\n");
-            free(currentURL);
-            continue;
-        }
+
 
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = htons(PORT);
@@ -125,7 +143,9 @@ int main(int argc,char *argv[]) {
         //Connect to the desired Server
         if(connect(socketFD, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
             printf("Error with connecting\n");
-            exit(EXIT_FAILURE);
+            //exit(EXIT_FAILURE);
+            free(currentURL);
+            continue;
         } else {
             ///fprintf(stderr,"Connected successfully\n");
         }
@@ -187,7 +207,7 @@ int main(int argc,char *argv[]) {
                 ////////////////////////
 
                 if(statusCode != 200){
-                    printf("\nNot Status code 200\n");
+                   // printf("\nNot Status code 200\n");
                     break;
                 }
 
@@ -214,12 +234,15 @@ int main(int argc,char *argv[]) {
 
         }
 
+        shutdown(socketFD,SHUT_RDWR);
+        close(socketFD);
         //Print the URL just parsed to the stdout
         printf("http://%s%s",currentURL->hostname,currentURL->path);
-        printf("\nContent Length: %d, Total URL's: %d\n",total,totalURLs);
+        printf("\nContent Length: %d, Total URL's Parsed: %d\n",total,numberOfPagesFetched);
         free(currentURL);
     }
 
+    clearHistory();
     printStack();
     return 0;
 }
@@ -259,7 +282,7 @@ void parseHTML(char buffer[], URLInfo * currentURL)
 
             previousTopPointer = pointerTopURL;
 
-            if (checkIfValidURL(possibleURL, currentURL) == IS_VALID_URL) {
+            if (checkIfValidURL(possibleURL) == IS_VALID_URL) {
                 enqueueURL(possibleURL);
                 parseURL(currentURL);
                 totalURLs++;
@@ -277,7 +300,7 @@ void parseHTML(char buffer[], URLInfo * currentURL)
 
 }
 
-int checkIfValidURL(char possibleURL[], URLInfo * currentURL) {
+int checkIfValidURL(char possibleURL[]) {
 
     /* A valid URL's host 1st component should match the host of the given command line URL
      *
@@ -330,61 +353,7 @@ int checkIfValidURL(char possibleURL[], URLInfo * currentURL) {
     }
 
 
-    char *pointerURL = &(pointerTopURL->fullURL[0]);
 
-    char *firstDot;
-    int fdi;
-
-    char *firstSlash;
-    int fsi;
-
-    char *endURL;
-    int eURLi;
-
-    char firstComponent[1000];
-
-    //Check if URL is Absolute (Fully Specified)
-    if (strcasestr(possibleURL, "http://") != NULL) {
-        //If so move pointer to the character after the last /
-        pointerURL = &(possibleURL[7]);
-
-    }
-        //Check if URL is Absolute (Implied Protocol)
-    else if (strstr(possibleURL, "//") != NULL) {
-
-        //If so move pointer to the character after the last /
-        pointerURL = &(possibleURL[2]);
-
-
-    }
-        //Check if URL is Absolute (Implied Protocol and Hostname)
-    else if (possibleURL[0] == '/') {
-
-        strcpy(firstComponent, currentURL->firstComponentOfHostname);
-        pointerURL = &(possibleURL[1]);
-
-    }
-
-
-    //Pointer is now pointing to the beginning of the hostname
-
-    //get the first component of the hostname.
-    if ((firstDot = strchr(pointerURL, '.')) != NULL) {
-        fdi = (firstDot ? firstDot - pointerURL : -1);
-
-        memcpy(firstComponent, &pointerURL[0], fdi);
-        firstComponent[fdi] = NULL_BYTE_CHARACTER;
-    } else {
-        endURL = strchr(pointerURL, '\0');
-        eURLi = (endURL ? endURL - pointerURL : -1);
-        memcpy(firstComponent, &pointerURL[0], eURLi);
-        firstComponent[eURLi] = NULL_BYTE_CHARACTER;
-
-    }
-
-    if (strcmp(firstComponent, givenFirstComponentOfHostname) == 0) {
-        return IS_NOT_VALID_URL;
-    }
 
 
     return IS_VALID_URL;

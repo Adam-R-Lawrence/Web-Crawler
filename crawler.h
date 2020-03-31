@@ -47,13 +47,13 @@ typedef struct URLInfo {
 
 /* Function Prototypes */
 void parseHTML(char buffer[], URLInfo *currentURL);
-int checkIfValidURL(char possibleURL[],URLInfo * currentURL);
+int checkIfValidURL(char possibleURL[]);
 void enqueueURL(char *URL);
 void printStack(void);
 void dequeueURL(URLInfo *toFetchURL);
 void parseURL(URLInfo * currentURL);
 int checkHistory(URLInfo * URLtoCheck);
-
+void clearHistory();
 
 
 
