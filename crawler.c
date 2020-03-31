@@ -11,33 +11,40 @@
 
 URLInfo *pointerBottomURL = NULL;
 URLInfo *pointerTopURL = NULL;
+uniqueURL * pointerToHistory = NULL;
 char givenFirstComponentOfHostname[MAX_URL_SIZE + NULL_BYTE];
 int totalURLs = 0;
 
 
 int main(int argc,char *argv[]) {
 
-
+    //Check if a URL was given
     if (argc == 1){
-         printf("No URL was given\n");
+         fprintf(stderr,"No URL was given\n");
          exit(EXIT_FAILURE);
     }
 
-
     //Check if command line URL is valid
-    if (checkIfValidURL(argv[1]) == IS_VALID){
+    if (checkIfValidURL(argv[1],NULL) == IS_VALID_URL){
+
         enqueueURL(argv[1]);
         parseURL(NULL);
 
+        //Need to remove later//
         totalURLs++;
+        ///////////////////////
+
     } else {
-        printf("Given URL is not Valid");
+
+        fprintf(stderr,"Given URL is not Valid");
         exit(EXIT_FAILURE);
+
     }
 
+    //Store the first component of the given host for future comparisons
     strcpy(givenFirstComponentOfHostname,pointerTopURL->firstComponentOfHostname);
 
-
+    //Variables for using a socket
     int socketFD;
     char sendBuff[SEND_BUFFER_LENGTH] = {0};
     struct sockaddr_in serv_addr;
@@ -45,26 +52,16 @@ int main(int argc,char *argv[]) {
     struct hostent *server;
 
 
-
-    /*
-    if (checkIfValidURL(argv[1]) == IS_VALID) {
-        enqueueURL(argv[1]);
-        parseURL();
-    }
-    */
-
-    //strcpy(givenFirstComponentOfHostname,pointerTopURL->firstComponentOfHostname);
-
     int numberOfBytesRead;
     int total;
-    char *tail;
+    char *endOfHeaderPointer;
     int index;
 
     //Content Length Header
     char *contentLengthHeader;
     int contentLength, cli;
 
-    //Content Length Header
+    //Status Code
     char * pageStatusCode;
     int statusCode, sci;
 
@@ -73,10 +70,8 @@ int main(int argc,char *argv[]) {
     char contentType[100];
     int cti;
 
+
     int numberOfPagesFetched = 0;
-
-
-
     URLInfo * currentURL;
 
     while(numberOfPagesFetched < MAX_NUMBER_OF_PAGES_FETCHED && pointerBottomURL != NULL) {
@@ -85,14 +80,14 @@ int main(int argc,char *argv[]) {
         int isHeader = TRUE;
 
 
-        printf("Number of Pages Fetched: %d\n",numberOfPagesFetched);
+        ///printf("Number of Pages Fetched: %d\n",numberOfPagesFetched);
 
         currentURL = malloc(sizeof(URLInfo));
         dequeueURL(currentURL);
-        printf("Full URL: %s\n", currentURL->fullURL);
-        printf("First Component: %s\n", currentURL->firstComponentOfHostname);
-        printf("Hostname: %s\n", currentURL->hostname);
-        printf("Path: %s\n", currentURL->path);
+        ///printf("Full URL: %s\n", currentURL->fullURL);
+        ///printf("First Component: %s\n", currentURL->firstComponentOfHostname);
+        ///printf("Hostname: %s\n", currentURL->hostname);
+        ///printf("Path: %s\n", currentURL->path);
 
 
 
@@ -105,22 +100,24 @@ int main(int argc,char *argv[]) {
             printf("Error with opening socket\n");
             exit(EXIT_FAILURE);
         } else {
-            //printf("Socket opened successfully.\n");
+            ///fprintf(stderr,"Socket opened successfully.\n");
         }
 
-        //serv_addr = malloc(sizeof(struct sockaddr_in));
+        //initialise server address
+        memset(&serv_addr, 0, sizeof(serv_addr));
 
-        memset(&serv_addr, '0', sizeof(serv_addr)); //initialise server address
-        memset(sendBuff, '0', sizeof(sendBuff)); //initialise send buffer
+        //initialise send buffer
+        memset(sendBuff, '0', sizeof(sendBuff));
 
 
         //Details of the Server
         server = gethostbyname(currentURL->hostname);
         if(server == NULL){
-            printf("NotValidHostname\n");
+            //fprintf(stderr,"NotValidHostname\n");
             free(currentURL);
             continue;
         }
+
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = htons(PORT);
         memcpy(&serv_addr.sin_addr.s_addr,server->h_addr,server->h_length);
@@ -130,99 +127,100 @@ int main(int argc,char *argv[]) {
             printf("Error with connecting\n");
             exit(EXIT_FAILURE);
         } else {
-            //printf("Connected successfully\n");
+            ///fprintf(stderr,"Connected successfully\n");
         }
-
-        numberOfPagesFetched++;
-
-        //Print out URL to stdout
-        //printf("%s\n",url);
 
         //Send HTTP GET request to the server
         sprintf(sendBuff, HTTP_REQUEST_HEADER, currentURL->path, currentURL->hostname);
-        //sprintf(sendBuff, HTTP_REQUEST_HEADER, currentURL->path, currentURL->hostname);
         if(send(socketFD, sendBuff, strlen(sendBuff), 0) < 0) {
-            printf("Error with sending GET request\n");
+            fprintf(stderr,"Error with sending GET request\n");
             exit(EXIT_FAILURE);
         } else {
-            //printf("Successfully sent html fetch request\n");
+            ///fprintf(stderr,"Successfully sent html fetch request\n");
         }
+
+        //Add to total of Web pages that were attempted to be fetched
+        numberOfPagesFetched++;
 
         //Receive the response from the server
         while (contentLength != total && (numberOfBytesRead = recv(socketFD, recvBuff, sizeof(recvBuff) - 1, 0)) > 0) {
 
-
             if (isHeader == TRUE) {
-                tail = strstr(recvBuff, END_OF_HTTP_HEADER) + 4;
+                endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
                 //Content Type
                 contentTypeHeader = strstr(recvBuff, CONTENT_TYPE);
                 cti = (contentTypeHeader ? contentTypeHeader - recvBuff : -1) + strlen(CONTENT_TYPE);
                 memcpy(contentType, &recvBuff[cti], 9);
                 contentType[9] = NULL_BYTE_CHARACTER;
-                if(strcmp(contentType,VALID_MIME_TYPE) != 0 || contentTypeHeader == NULL){
-                    printf("\nNot VALID MIME TYPE\n");
+                if((strcmp(contentType,VALID_MIME_TYPE) != 0 || contentTypeHeader == NULL)){
+                    ///printf("\nNot VALID MIME TYPE\n");
                     break;
                 }
-                printf("\nContent-Type: %s\n",contentType);
+
+                //Need to remove later//
+                ///printf("\nContent-Type: %s\n",contentType);
+                ////////////////////////
 
                 //Content Length
                 contentLengthHeader = strstr(recvBuff, CONTENT_LENGTH);
-
                 if (contentLengthHeader == NULL){
 
-                    printf("\nNo Content Length Header\n");
+                    ///printf("\nNo Content Length Header\n");
                     break;
                 }
                 contentLengthHeader += strlen(CONTENT_LENGTH);
                 cli = (contentLengthHeader ? contentLengthHeader - recvBuff : -1);
-                //printf("\n%d\n",cli);
                 contentLength = atoi(&(recvBuff[cli]));
 
-                printf("\nContent-Length: %d\n", contentLength);
-                //printf("\n\n\n%s\n\n\n", recvBuff);
-
+                //Need to remove later//
+                ///printf("\nContent-Length: %d\n", contentLength);
+                /////////////////////////
 
                 //Status Code
                 pageStatusCode = strstr(recvBuff, STATUS_CODE) + strlen(STATUS_CODE);
                 sci = (pageStatusCode ? pageStatusCode - recvBuff : -1);
                 statusCode = atoi(&(recvBuff[sci]));
 
-                printf("\nStatus-Code: %d\n", statusCode);
+                //Need to remove later//
+                ///printf("\nStatus-Code: %d\n", statusCode);
+                ////////////////////////
+
                 if(statusCode != 200){
                     printf("\nNot Status code 200\n");
                     break;
                 }
 
 
-                if (tail != NULL) {
-                    //tail = tail -2;
+                //Check to see if the end of the header is fully received
+                if (endOfHeaderPointer != NULL) {
+
                     isHeader = FALSE;
-                    index = (tail ? tail - recvBuff : -1);
+                    index = (endOfHeaderPointer ? endOfHeaderPointer - recvBuff : -1) + 4;
 
                     total += numberOfBytesRead - index;
 
-                    //printf ("%s", &(recvBuff[index]));
-                    //memset(recvBuff,0,strlen(recvBuff));
-                    continue;
+                    parseHTML(recvBuff, currentURL);
+
                 }
+
+                memset(recvBuff, 0, strlen(recvBuff));
+                continue;
             }
 
             parseHTML(recvBuff, currentURL);
-            //printf("%s", recvBuff);
-
             total += numberOfBytesRead;
             memset(recvBuff, 0, strlen(recvBuff));
 
         }
 
         //Print the URL just parsed to the stdout
-        //printf("http://%s%s",currentURL->hostname,currentURL->path);
+        printf("http://%s%s",currentURL->hostname,currentURL->path);
         printf("\nContent Length: %d, Total URL's: %d\n",total,totalURLs);
         free(currentURL);
     }
 
-    //printStack();
+    printStack();
     return 0;
 }
 
@@ -238,6 +236,9 @@ void parseHTML(char buffer[], URLInfo * currentURL)
 
 
 
+    URLInfo * tempPointer;
+    URLInfo * previousTopPointer;
+
 
     while ((startURL = strcasestr(buffer, "<a href=")) != NULL) {
         //Find <a
@@ -245,6 +246,7 @@ void parseHTML(char buffer[], URLInfo * currentURL)
 
         startURL = &(startURL[9]);
         si = (startURL ? startURL - buffer : -1);
+
 
         endURL = strstr(startURL, "\"");
         if(endURL != NULL) {
@@ -255,23 +257,12 @@ void parseHTML(char buffer[], URLInfo * currentURL)
             memcpy(possibleURL, &buffer[si], URLLength);
             possibleURL[URLLength] = NULL_BYTE_CHARACTER;
 
-            if (checkIfValidURL(possibleURL) == IS_VALID) {
+            previousTopPointer = pointerTopURL;
+
+            if (checkIfValidURL(possibleURL, currentURL) == IS_VALID_URL) {
                 enqueueURL(possibleURL);
                 parseURL(currentURL);
                 totalURLs++;
-
-                /*
-                if (strcmp(pointerTopURL->firstComponentOfHostname, givenFirstComponentOfHostname) != 0) {
-                    //If its already in history
-
-                    //dequeueURL();
-                    tempPointer = pointerTopURL;
-                    pointerTopURL = pointerTopURL->nextNode;
-                    free(tempPointer);
-
-                    totalURLs--;
-                }
-                 */
 
             }
 
@@ -280,19 +271,15 @@ void parseHTML(char buffer[], URLInfo * currentURL)
         }
 
 
-
-
-
         buffer = startURL;
     }
 
+
 }
 
-int checkIfValidURL(char possibleURL[])
-{
-    int validURL;
+int checkIfValidURL(char possibleURL[], URLInfo * currentURL) {
 
-    /* A valid URL's host should match the host of the given command line URL
+    /* A valid URL's host 1st component should match the host of the given command line URL
      *
      *
      */
@@ -302,50 +289,105 @@ int checkIfValidURL(char possibleURL[])
      *
      *
      */
-    if (strstr(possibleURL, "https://") != NULL)
-    {
-        return validURL = NOT_VALID;
+
+    if (strstr(possibleURL, "https://") != NULL) {
+        return IS_NOT_VALID_URL;
     }
 
 
     //A valid URL cannot be over 1000 bytes long
-    if (strlen(possibleURL) > MAX_URL_SIZE)
-    {
-        return validURL = NOT_VALID;
+    if (strlen(possibleURL) > MAX_URL_SIZE) {
+        return IS_NOT_VALID_URL;
     }
 
     //A valid URL contains no "." path segments
-    if (strstr(possibleURL, "./") != NULL)
-    {
-        return validURL = NOT_VALID;
+    if (strstr(possibleURL, "./") != NULL) {
+        return IS_NOT_VALID_URL;
     }
 
     //A valid URL contains no ".." path segments
-    if (strstr(possibleURL, "../") != NULL)
-    {
-        return validURL = NOT_VALID;
+    if (strstr(possibleURL, "../") != NULL) {
+        return IS_NOT_VALID_URL;
     }
 
     //A valid URL contains no Exclamation Mark
-    if (strchr(possibleURL, EXCLAMATION_MARK) != NULL)
-    {
-        return validURL = NOT_VALID;
+    if (strchr(possibleURL, EXCLAMATION_MARK) != NULL) {
+        return IS_NOT_VALID_URL;
     }
 
     //A valid URL contains no Hashtag
-    if (strchr(possibleURL, HASHTAG) != NULL)
-    {
-        return validURL = NOT_VALID;
+    if (strchr(possibleURL, HASHTAG) != NULL) {
+        return IS_NOT_VALID_URL;
     }
 
     //A valid URL contains no URL Encoded Characters
-    if (strchr(possibleURL, URL_ENCODED_CHARACTER) != NULL)
-    {
-        return validURL = NOT_VALID;
+    if (strchr(possibleURL, URL_ENCODED_CHARACTER) != NULL) {
+        return IS_NOT_VALID_URL;
+    }
+
+    if (strcmp(possibleURL, "") == 0) {
+        return IS_NOT_VALID_URL;
     }
 
 
-    return validURL = IS_VALID;
+    char *pointerURL = &(pointerTopURL->fullURL[0]);
+
+    char *firstDot;
+    int fdi;
+
+    char *firstSlash;
+    int fsi;
+
+    char *endURL;
+    int eURLi;
+
+    char firstComponent[1000];
+
+    //Check if URL is Absolute (Fully Specified)
+    if (strcasestr(possibleURL, "http://") != NULL) {
+        //If so move pointer to the character after the last /
+        pointerURL = &(possibleURL[7]);
+
+    }
+        //Check if URL is Absolute (Implied Protocol)
+    else if (strstr(possibleURL, "//") != NULL) {
+
+        //If so move pointer to the character after the last /
+        pointerURL = &(possibleURL[2]);
+
+
+    }
+        //Check if URL is Absolute (Implied Protocol and Hostname)
+    else if (possibleURL[0] == '/') {
+
+        strcpy(firstComponent, currentURL->firstComponentOfHostname);
+        pointerURL = &(possibleURL[1]);
+
+    }
+
+
+    //Pointer is now pointing to the beginning of the hostname
+
+    //get the first component of the hostname.
+    if ((firstDot = strchr(pointerURL, '.')) != NULL) {
+        fdi = (firstDot ? firstDot - pointerURL : -1);
+
+        memcpy(firstComponent, &pointerURL[0], fdi);
+        firstComponent[fdi] = NULL_BYTE_CHARACTER;
+    } else {
+        endURL = strchr(pointerURL, '\0');
+        eURLi = (endURL ? endURL - pointerURL : -1);
+        memcpy(firstComponent, &pointerURL[0], eURLi);
+        firstComponent[eURLi] = NULL_BYTE_CHARACTER;
+
+    }
+
+    if (strcmp(firstComponent, givenFirstComponentOfHostname) == 0) {
+        return IS_NOT_VALID_URL;
+    }
+
+
+    return IS_VALID_URL;
 }
 
 /*
@@ -353,12 +395,7 @@ int checkIfValidURL(char possibleURL[])
  */
 void parseURL(URLInfo * currentURL) {
 
-
-
     char * pointerURL = &(pointerTopURL->fullURL[0]);
-
-
-
 
     char * firstDot;
     int fdi;
@@ -371,12 +408,13 @@ void parseURL(URLInfo * currentURL) {
 
     //Check if URL is Absolute (Fully Specified)
     if(strcasestr(pointerTopURL->fullURL,"http://") != NULL) {
-        pointerURL = &(pointerTopURL->fullURL[7]);
         //If so move pointer to the character after the last /
+        pointerURL = &(pointerTopURL->fullURL[7]);
 
     }
     //Check if URL is Absolute (Implied Protocol)
     else if (strstr(pointerTopURL->fullURL,"//") != NULL) {
+
         //If so move pointer to the character after the last /
         pointerURL = &(pointerTopURL->fullURL[2]);
 
@@ -384,8 +422,7 @@ void parseURL(URLInfo * currentURL) {
     }
     //Check if URL is Absolute (Implied Protocol and Hostname)
     else if (pointerTopURL->fullURL[0] == '/'){
-        //strcpy(pointerTopURL->hostname,currentURL->hostname);
-        //strcpy(pointerTopURL->firstComponentOfHostname,currentURL->firstComponentOfHostname);
+
         strcpy(pointerTopURL->hostname,currentURL->hostname);
         strcpy(pointerTopURL->firstComponentOfHostname,currentURL->firstComponentOfHostname);
 
@@ -397,14 +434,6 @@ void parseURL(URLInfo * currentURL) {
         memcpy(pointerTopURL->path, &pointerURL[0], fsi);
         pointerTopURL->path[fsi] = NULL_BYTE_CHARACTER;
 
-        //Therefore path = ""
-        //strcpy(pointerTopURL->path,"");
-
-        //If so move pointer to the character after the last /
-        //printf("Full URL: %s\n",pointerTopURL->fullURL);
-        //printf("First Component of Hostname: %s\n",pointerTopURL->firstComponentOfHostname);
-        //printf("Hostname: %s\n",pointerTopURL->hostname);
-        //printf("Path: %s\n",pointerTopURL->path);
         return;
     }
 
@@ -427,8 +456,6 @@ void parseURL(URLInfo * currentURL) {
     //Pointer is still pointing to the beginning of the hostname
 
     //Find the end of the hostname
-
-
     if ((firstSlash = strchr(pointerURL, '/'))!= NULL) {
 
         fsi = (firstSlash ? firstSlash - pointerURL : -1);
@@ -460,10 +487,6 @@ void parseURL(URLInfo * currentURL) {
         strcpy(pointerTopURL->path,"");
     }
 
-    //printf("Full URL: %s\n",pointerTopURL->fullURL);
-    //printf("First Component of Hostname: %s\n",pointerTopURL->firstComponentOfHostname);
-    //printf("Hostname: %s\n",pointerTopURL->hostname);
-    //printf("Path: %s\n",pointerTopURL->path);
 }
 
 void dequeueURL(URLInfo *toFetchURL){
@@ -492,6 +515,7 @@ void enqueueURL(char *URL){
     if(TempPointer == NULL){
         return;
     }
+
     strcpy(TempPointer->fullURL,URL);
     TempPointer->nextNode = NULL;
 
@@ -521,4 +545,44 @@ void printStack(void){
     printf("**************\n");
     printf("Counted %d URL's\n",numberOfNodes);
     printf("***List of URL's***\n");
+}
+
+
+
+
+int checkHistory(URLInfo * URLtoCheck){
+    uniqueURL * tempPointer = pointerToHistory;
+    uniqueURL * newUniqueURL;
+
+    //Check the URL against the existing HISTORY
+    while(tempPointer != NULL){
+        if((strcmp(URLtoCheck->hostname,tempPointer->URLhostname) == 0) && (strcmp(URLtoCheck->path,tempPointer->URLpath) == 0)){
+            return IS_NOT_VALID_URL;
+        }
+
+        tempPointer = tempPointer->nextUniqueURL;
+    }
+
+
+
+    newUniqueURL = malloc(sizeof(uniqueURL));
+    newUniqueURL->nextUniqueURL = pointerToHistory;
+    strcpy(newUniqueURL->URLhostname, URLtoCheck->hostname);
+    strcpy(newUniqueURL->URLpath, URLtoCheck->path);
+
+    pointerToHistory = newUniqueURL;
+
+    return IS_VALID_URL;
+}
+
+void clearHistory() {
+    uniqueURL * tempPointer;
+
+    while (pointerToHistory != NULL)
+    {
+        tempPointer = pointerToHistory;
+        pointerToHistory = pointerToHistory->nextUniqueURL;
+        free(tempPointer);
+    }
+
 }
