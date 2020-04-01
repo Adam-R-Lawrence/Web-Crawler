@@ -16,8 +16,8 @@
 #define URL_ENCODED_CHARACTER '%'
 #define MAX_URL_SIZE 1000
 #define END_OF_HTTP_HEADER "\r\n\r\n"
-#define CONTENT_LENGTH "Content-Length: "
-#define CONTENT_TYPE "Content-Type: "
+#define CONTENT_LENGTH "Content-Length:"
+#define CONTENT_TYPE "Content-Type:"
 #define STATUS_CODE "HTTP/1.1 "
 #define VALID_MIME_TYPE "text/html"
 #define NULL_BYTE_CHARACTER '\0'
