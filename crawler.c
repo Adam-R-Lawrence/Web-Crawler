@@ -18,6 +18,7 @@ char givenFirstComponentOfHostname[MAX_URL_SIZE + NULL_BYTE];
 int totalURLs = 0;
 
 
+
 int main(int argc,char *argv[]) {
 
     //Check if a URL was given
@@ -162,9 +163,13 @@ int main(int argc,char *argv[]) {
         //Add to total of Web pages that were attempted to be fetched
         numberOfPagesFetched++;
 
+        //char * fullBuffer = malloc(1);
+        //strcpy(fullBuffer, (char *) ' ');
+        char * fullBuffer = strdup(" ");
+
         //Receive the response from the server
         while (contentLength != total && (numberOfBytesRead = recv(socketFD, recvBuff, sizeof(recvBuff) - 1, 0)) > 0) {
-            printf("%s",recvBuff);
+
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
@@ -249,7 +254,13 @@ int main(int argc,char *argv[]) {
 
                     total += numberOfBytesRead - index;
 
-                    parseHTML(recvBuff, currentURL);
+                    //parseHTML(recvBuff, currentURL);
+                    endOfHeaderPointer = &(endOfHeaderPointer[4]);
+                    printf("LENGTH: %lu TOTAL: %d\n",strlen(endOfHeaderPointer),total);
+
+                    fullBuffer = realloc(fullBuffer, total + 10);
+                    strcat(fullBuffer,endOfHeaderPointer);
+                    //printf("%s",fullBuffer);
 
                 }
 
@@ -257,23 +268,32 @@ int main(int argc,char *argv[]) {
                 continue;
             }
 
-            parseHTML(recvBuff, currentURL);
+            //parseHTML(recvBuff, currentURL);
             total += numberOfBytesRead;
+            fullBuffer = realloc(fullBuffer, total + 10);
+            strcat(fullBuffer,recvBuff);
+
             memset(recvBuff, 0, strlen(recvBuff));
 
         }
 
+        //printf("%s\n",fullBuffer);
+
+
         shutdown(socketFD,SHUT_RDWR);
         close(socketFD);
+        parseHTML(fullBuffer, currentURL);
         //Print the URL just parsed to the stdout
         //printf("\nContent Length: %d, Total URL's Parsed: %d\n",total,numberOfPagesFetched);
         printf("http://%s%s\n",currentURL->hostname,currentURL->path);
 
+
         free(currentURL);
+        free(fullBuffer);
     }
 
     clearHistory();
-    //printStack();
+    printStack();
     return 0;
 }
 
