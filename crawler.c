@@ -26,8 +26,6 @@ int main(int argc,char *argv[]) {
          exit(EXIT_FAILURE);
     }
 
-    printf("FIRST URL: %s\n", argv[1]);
-
     //Check if command line URL is valid
     if (checkIfValidURL(argv[1]) == IS_VALID_URL){
 
@@ -275,7 +273,7 @@ int main(int argc,char *argv[]) {
     }
 
     clearHistory();
-    printStack();
+    //printStack();
     return 0;
 }
 
@@ -341,7 +339,7 @@ void parseHTML(char buffer[], URLInfo * currentURL)
             apostrophe = strstr(startURL, "\'");
             ai = (apostrophe ? apostrophe - anchor : -1);
 
-            printf("qi = %d , ai = %d\n",qi,ai);
+            //printf("qi = %d , ai = %d\n",qi,ai);
 
             if(qi > 0 && ai > 0){
 
