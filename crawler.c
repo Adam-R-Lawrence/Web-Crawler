@@ -103,7 +103,6 @@ int main(int argc,char *argv[]) {
         commandLineURLParsed = TRUE;
 
         if(checkHistory(currentURL) == IS_NOT_VALID_URL){
-            //printf("\nDuplicate: %s\n",currentURL->fullURL);
             free(currentURL);
             continue;
         }
@@ -163,9 +162,7 @@ int main(int argc,char *argv[]) {
         //Add to total of Web pages that were attempted to be fetched
         numberOfPagesFetched++;
 
-        //char * fullBuffer = malloc(1);
-        //strcpy(fullBuffer, (char *) ' ');
-        char * fullBuffer = strdup(" ");
+        char * fullBuffer = strdup("");
 
         //Receive the response from the server
         while (contentLength != total && (numberOfBytesRead = recv(socketFD, recvBuff, sizeof(recvBuff) - 1, 0)) > 0) {
@@ -225,11 +222,13 @@ int main(int argc,char *argv[]) {
                 ////////////////////////
 
                if(statusCode == 200){
-                    //Success
+                    //Success, All is good
                } else if(statusCode == 404 || statusCode == 410 ||statusCode == 414){
+                   //Critical Failure
                     break;
                }
                else if(statusCode == 503){
+                   //Temporary Failure
                     break;
                }
                else if(statusCode == 504){
@@ -243,6 +242,7 @@ int main(int argc,char *argv[]) {
 
                } */
                else {
+                   //We may ignore everything else
                    break;
                };
 
@@ -254,13 +254,11 @@ int main(int argc,char *argv[]) {
 
                     total += numberOfBytesRead - index;
 
-                    //parseHTML(recvBuff, currentURL);
                     endOfHeaderPointer = &(endOfHeaderPointer[4]);
-                    printf("LENGTH: %lu TOTAL: %d\n",strlen(endOfHeaderPointer),total);
+                    //printf("LENGTH: %lu TOTAL: %d\n",strlen(endOfHeaderPointer),total);
 
                     fullBuffer = realloc(fullBuffer, total + 10);
                     strcat(fullBuffer,endOfHeaderPointer);
-                    //printf("%s",fullBuffer);
 
                 }
 
@@ -268,38 +266,34 @@ int main(int argc,char *argv[]) {
                 continue;
             }
 
-            //parseHTML(recvBuff, currentURL);
             total += numberOfBytesRead;
             fullBuffer = realloc(fullBuffer, total + 10);
             strcat(fullBuffer,recvBuff);
-
             memset(recvBuff, 0, strlen(recvBuff));
 
         }
 
-        //printf("%s\n",fullBuffer);
-
-
         shutdown(socketFD,SHUT_RDWR);
         close(socketFD);
-        parseHTML(fullBuffer, currentURL);
+
+        if(total == contentLength) {
+            parseHTML(fullBuffer, currentURL);
+        }
+
         //Print the URL just parsed to the stdout
-        //printf("\nContent Length: %d, Total URL's Parsed: %d\n",total,numberOfPagesFetched);
         printf("http://%s%s\n",currentURL->hostname,currentURL->path);
 
-
+        //Free buffers and URLs
         free(currentURL);
         free(fullBuffer);
     }
 
     clearHistory();
-    printStack();
+
     return 0;
 }
 
-
-
-
+//Function to parse the HTML and find URLs
 void parseHTML(char buffer[], URLInfo * currentURL)
 {
     int si, ei, URLLength;
@@ -348,7 +342,6 @@ void parseHTML(char buffer[], URLInfo * currentURL)
             }
             startURL = &(startURL[1]);
 
-            //printf("%s\n",startURL);
 
             si = (startURL ? startURL - anchor : -1);
 
@@ -359,7 +352,6 @@ void parseHTML(char buffer[], URLInfo * currentURL)
             apostrophe = strstr(startURL, "\'");
             ai = (apostrophe ? apostrophe - anchor : -1);
 
-            //printf("qi = %d , ai = %d\n",qi,ai);
 
             if(qi > 0 && ai > 0){
 
@@ -410,21 +402,10 @@ void parseHTML(char buffer[], URLInfo * currentURL)
         //printf("%s",buffer);
     }
 
-
 }
 
+//Function to check if a URL is valid
 int checkIfValidURL(char possibleURL[]) {
-
-    /* A valid URL's host 1st component should match the host of the given command line URL
-     *
-     *
-     */
-
-    /*
-     * A valid URL is one we have not visited it already
-     *
-     *
-     */
 
     if (strstr(possibleURL, "https://") != NULL) {
         return IS_NOT_VALID_URL;
@@ -465,15 +446,11 @@ int checkIfValidURL(char possibleURL[]) {
         return IS_NOT_VALID_URL;
     }
 
-
-
-
-
     return IS_VALID_URL;
 }
 
 /*
- *  A function that returns the host of a given URL
+ *  A function breaks up a URL into its constituents
  */
 void parseURL(URLInfo * currentURL) {
 
@@ -571,26 +548,6 @@ void parseURL(URLInfo * currentURL) {
 
 }
 
-void dequeueURL(URLInfo *toFetchURL){
-    if(pointerBottomURL == NULL){
-        return;
-    }
-    strcpy(toFetchURL->fullURL, pointerBottomURL->fullURL);
-    strcpy(toFetchURL->hostname, pointerBottomURL->hostname);
-    strcpy(toFetchURL->firstComponentOfHostname, pointerBottomURL->firstComponentOfHostname);
-    strcpy(toFetchURL->path, pointerBottomURL->path);
-
-
-    URLInfo *TempPointer = pointerBottomURL;
-    pointerBottomURL = pointerBottomURL->nextNode;
-    free(TempPointer);
-
-    if(pointerBottomURL == NULL){
-        pointerTopURL = NULL;
-    }
-
-}
-
 void enqueueURL(char *URL){
     URLInfo *TempPointer = malloc(sizeof(URLInfo));
 
@@ -613,24 +570,25 @@ void enqueueURL(char *URL){
 
 }
 
-void printStack(void){
-    printf("***List of URL's***\n");
-    printf("**************\n");
-    int numberOfNodes = 0;
+void dequeueURL(URLInfo *toFetchURL){
+    if(pointerBottomURL == NULL){
+        return;
+    }
+    strcpy(toFetchURL->fullURL, pointerBottomURL->fullURL);
+    strcpy(toFetchURL->hostname, pointerBottomURL->hostname);
+    strcpy(toFetchURL->firstComponentOfHostname, pointerBottomURL->firstComponentOfHostname);
+    strcpy(toFetchURL->path, pointerBottomURL->path);
+
+
     URLInfo *TempPointer = pointerBottomURL;
-    while(TempPointer != NULL){
-        numberOfNodes++;
-        printf("%s\n",TempPointer->fullURL);
-        //printf("%s\n",TempPointer->hostname);
-        TempPointer = TempPointer->nextNode;
-    };
-    printf("**************\n");
-    printf("Counted %d URL's\n",numberOfNodes);
-    printf("***List of URL's***\n");
+    pointerBottomURL = pointerBottomURL->nextNode;
+    free(TempPointer);
+
+    if(pointerBottomURL == NULL){
+        pointerTopURL = NULL;
+    }
+
 }
-
-
-
 
 int checkHistory(URLInfo * URLtoCheck){
     uniqueURL * tempPointer = pointerToHistory;
@@ -644,8 +602,6 @@ int checkHistory(URLInfo * URLtoCheck){
 
         tempPointer = tempPointer->nextUniqueURL;
     }
-
-
 
     newUniqueURL = malloc(sizeof(uniqueURL));
     newUniqueURL->nextUniqueURL = pointerToHistory;

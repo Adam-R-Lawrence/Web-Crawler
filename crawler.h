@@ -1,11 +1,11 @@
 //
-// Created by Arlawrence on 22/03/2020.
+// Created by arlawrence on 22/03/2020.
 //
 
 #ifndef CODE_CRAWLER_H
 #define CODE_CRAWLER_H
 
-/* Defines */
+/* Define Constants */
 #define PORT 80
 #define HTTP_REQUEST_HEADER "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: arlawrence\r\n\r\n"
 #define MAX_NUMBER_OF_PAGES_FETCHED 100
@@ -24,12 +24,13 @@
 #define NULL_BYTE 1
 #define SEND_BUFFER_LENGTH 2100
 #define RECEIVED_BUFFER_LENGTH 3000
-#define TRUE 1
-#define FALSE 0
-
-
 #define NO_SOCKET_OPENED 0
 
+/* Define Enumerations */
+enum boolean {FALSE, TRUE};
+
+
+/* Struct Typedefs */
 typedef struct uniqueURL {
     char URLhostname[MAX_URL_SIZE + NULL_BYTE];
     char URLpath[MAX_URL_SIZE + NULL_BYTE];
@@ -42,6 +43,7 @@ typedef struct URLInfo {
     char firstComponentOfHostname[MAX_URL_SIZE + NULL_BYTE];
     char path[MAX_URL_SIZE + NULL_BYTE];
     int validityOfURL;
+    int refetchedTimes;
     struct URLInfo *nextNode;
 } URLInfo;
 
@@ -49,13 +51,10 @@ typedef struct URLInfo {
 void parseHTML(char buffer[], URLInfo *currentURL);
 int checkIfValidURL(char possibleURL[]);
 void enqueueURL(char *URL);
-void printStack(void);
 void dequeueURL(URLInfo *toFetchURL);
 void parseURL(URLInfo * currentURL);
 int checkHistory(URLInfo * URLtoCheck);
 void clearHistory();
-
-
 
 
 #endif //CODE_CRAWLER_H
