@@ -26,6 +26,8 @@ int main(int argc,char *argv[]) {
          exit(EXIT_FAILURE);
     }
 
+    printf("FIRST URL: %s\n", argv[1]);
+
     //Check if command line URL is valid
     if (checkIfValidURL(argv[1]) == IS_VALID_URL){
 
