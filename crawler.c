@@ -164,7 +164,7 @@ int main(int argc,char *argv[]) {
 
         //Receive the response from the server
         while (contentLength != total && (numberOfBytesRead = recv(socketFD, recvBuff, sizeof(recvBuff) - 1, 0)) > 0) {
-
+            printf("%s",recvBuff);
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
