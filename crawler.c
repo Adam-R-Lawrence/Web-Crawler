@@ -219,11 +219,27 @@ int main(int argc,char *argv[]) {
                 ///printf("\nStatus-Code: %d\n", statusCode);
                 ////////////////////////
 
-                if(statusCode != 200){
-                   // printf("\nNot Status code 200\n");
+               if(statusCode == 200){
+                    //Success
+               } else if(statusCode == 404 || statusCode == 410 ||statusCode == 414){
                     break;
-                }
+               }
+               else if(statusCode == 503){
+                    break;
+               }
+               else if(statusCode == 504){
+                    break;
+               }
+               /*
+               else if(statusCode == 301){
 
+               }
+               else if(statusCode == 401){
+
+               } */
+               else {
+                   break;
+               };
 
                 //Check to see if the end of the header is fully received
                 if (endOfHeaderPointer != NULL) {
@@ -271,7 +287,9 @@ void parseHTML(char buffer[], URLInfo * currentURL)
     char * endURL;
     char * possibleURL;
 
-
+    char * apostrophe;
+    char * quotationMark;
+    int qi,ai;
 
 
     char * startAnchor;
@@ -297,15 +315,53 @@ void parseHTML(char buffer[], URLInfo * currentURL)
         anchor[anchorLength] = NULL_BYTE_CHARACTER;
 
 
-        if((startURL = strcasestr(anchor, "href=")) != NULL) {
-            //printf("%.20s\n",test);
-            startURL = &(startURL[6]);
+        if((startURL = strcasestr(anchor, "href")) != NULL) {
+
+            startURL = &(startURL[4]);
+
+            startURL = strcasestr(anchor, "=");
+            startURL = &(startURL[1]);
+
+
+            while(startURL[0] == ' '){
+                startURL = &(startURL[1]);
+            }
+            startURL = &(startURL[1]);
+
+            //printf("%s\n",startURL);
 
             si = (startURL ? startURL - anchor : -1);
 
 
+            quotationMark = strstr(startURL, "\"");
+            qi = (quotationMark ? quotationMark - anchor : -1);
 
-            endURL = strstr(startURL, "\"");
+            apostrophe = strstr(startURL, "\'");
+            ai = (apostrophe ? apostrophe - anchor : -1);
+
+            printf("qi = %d , ai = %d\n",qi,ai);
+
+            if(qi > 0 && ai > 0){
+
+                if (qi < ai){
+                    endURL = quotationMark;
+                } else if (qi > ai){
+                    endURL = apostrophe;
+                }
+
+            }
+            else if (qi < 0){
+                endURL = apostrophe;
+
+            } else if (ai < 0){
+
+                endURL = quotationMark;
+            } else {
+                continue;
+            }
+
+
+
             if (endURL != NULL) {
                 ei = (endURL ? endURL - anchor : -1);
 
