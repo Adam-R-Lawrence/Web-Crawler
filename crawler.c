@@ -162,7 +162,8 @@ int main(int argc,char *argv[]) {
         }
 
         //Send HTTP GET request to the server
-        sprintf(sendBuff, HTTP_REQUEST_HEADER, currentURL->path, currentURL->hostname);
+        sprintf(sendBuff, HTTP_REQUEST_HEADER, currentURL->path, currentURL->hostname, USERNAME);
+        printf("%s\n",sendBuff);
         if(send(socketFD, sendBuff, strlen(sendBuff), 0) < 0) {
             fprintf(stderr,"Error with sending GET request\n");
             exit(EXIT_FAILURE);
@@ -170,7 +171,7 @@ int main(int argc,char *argv[]) {
             //fprintf(stderr,"Successfully sent html fetch request\n");
         }
 
-        /*
+
         //Add to total of Web pages that were attempted to be fetched
         numberOfPagesFetched++;
 
@@ -286,7 +287,7 @@ int main(int argc,char *argv[]) {
         error:
         free(fullBuffer);
 
-         */
+
         free(currentURL);
         memset(recvBuff, 0, strlen(recvBuff));
         //shutdown(socketFD,SHUT_RDWR);
