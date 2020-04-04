@@ -41,7 +41,7 @@ typedef struct uniqueURL {
 typedef struct URLInfo {
     char fullURL[MAX_URL_SIZE + NULL_BYTE];
     char hostname[MAX_URL_SIZE + NULL_BYTE];
-    char firstComponentOfHostname[MAX_URL_SIZE + NULL_BYTE];
+    char allButFirstComponent[MAX_URL_SIZE + NULL_BYTE];
     char path[MAX_URL_SIZE + NULL_BYTE];
     int validityOfURL;
     int refetchedTimes;
