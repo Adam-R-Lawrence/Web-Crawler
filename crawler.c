@@ -22,15 +22,17 @@ int totalURLs = 0;
 
 int main(int argc,char *argv[]) {
 
+    //
+    printf("STARTED PROGRAM\n");
+    //
+
     //Check if a URL was given
     if (argc == 1){
          fprintf(stderr,"No URL was given\n");
          exit(EXIT_FAILURE);
     }
 
-    //
-    printf("STARTED PROGRAM\n");
-    //
+
 
     //Check if command line URL is valid
     if (checkIfValidURL(argv[1]) == IS_VALID_URL){
