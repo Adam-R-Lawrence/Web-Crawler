@@ -19,11 +19,11 @@ char givenFirstComponentOfHostname[MAX_URL_SIZE + NULL_BYTE];
 int totalURLs = 0;
 
 
-//
+
 int main(int argc,char *argv[]) {
 
     //
-    printf("STARTED PROGRAM\n");
+    //printf("STARTED PROGRAM\n");
     //
 
     //Check if a URL was given
@@ -52,7 +52,7 @@ int main(int argc,char *argv[]) {
     }
 
     //
-    printf("GIVEN URL WAS VALID\n");
+    //printf("GIVEN URL WAS VALID\n");
     //
 
     //Store the first component of the given host for future comparisons
@@ -100,10 +100,10 @@ int main(int argc,char *argv[]) {
         currentURL = malloc(sizeof(URLInfo));
 
         dequeueURL(currentURL);
-        printf("Full URL: %s\n", currentURL->fullURL);
-        printf("First Component: %s\n", currentURL->firstComponentOfHostname);
-        printf("Hostname: %s\n", currentURL->hostname);
-        printf("Path: %s\n", currentURL->path);
+        printf("\tFull URL: %s\n", currentURL->fullURL);
+        printf("\tFirst Component: %s\n", currentURL->firstComponentOfHostname);
+        printf("\tHostname: %s\n", currentURL->hostname);
+        printf("\tPath: %s\n", currentURL->path);
 
 
         if((strcmp(currentURL->firstComponentOfHostname,givenFirstComponentOfHostname) == 0) && commandLineURLParsed == TRUE){
@@ -163,7 +163,7 @@ int main(int argc,char *argv[]) {
 
         //Send HTTP GET request to the server
         sprintf(sendBuff, HTTP_REQUEST_HEADER, currentURL->path, currentURL->hostname, USERNAME);
-        printf("%s\n",sendBuff);
+        printf("GET REQUEST: %s\n",sendBuff);
         if(send(socketFD, sendBuff, strlen(sendBuff), 0) < 0) {
             fprintf(stderr,"Error with sending GET request\n");
             exit(EXIT_FAILURE);
@@ -277,7 +277,7 @@ int main(int argc,char *argv[]) {
 
         if(total == contentLength) {
             parseHTML(fullBuffer, currentURL);
-            printf("http://%s%s\n",currentURL->hostname,currentURL->path);
+            //printf("http://%s%s\n",currentURL->hostname,currentURL->path);
 
         }
 
