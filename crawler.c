@@ -170,6 +170,7 @@ int main(int argc,char *argv[]) {
             //fprintf(stderr,"Successfully sent html fetch request\n");
         }
 
+        /*
         //Add to total of Web pages that were attempted to be fetched
         numberOfPagesFetched++;
 
@@ -283,9 +284,10 @@ int main(int argc,char *argv[]) {
 
         //Free buffers and URLs
         error:
-
-        free(currentURL);
         free(fullBuffer);
+
+         */
+        free(currentURL);
         memset(recvBuff, 0, strlen(recvBuff));
         //shutdown(socketFD,SHUT_RDWR);
         usleep(20000);
