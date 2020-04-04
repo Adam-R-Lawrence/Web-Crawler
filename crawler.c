@@ -158,7 +158,7 @@ int main(int argc,char *argv[]) {
             free(currentURL);
             continue;
         } else {
-            ///fprintf(stderr,"Connected successfully\n");
+            //fprintf(stderr,"Connected successfully\n");
         }
 
         //Send HTTP GET request to the server
@@ -167,7 +167,7 @@ int main(int argc,char *argv[]) {
             fprintf(stderr,"Error with sending GET request\n");
             exit(EXIT_FAILURE);
         } else {
-            ///fprintf(stderr,"Successfully sent html fetch request\n");
+            //fprintf(stderr,"Successfully sent html fetch request\n");
         }
 
         //Add to total of Web pages that were attempted to be fetched
@@ -235,7 +235,7 @@ int main(int argc,char *argv[]) {
                if(statusCode == 200){
                     //Success, All is good
                } else{
-                   break;
+                   goto error;
                }
 
                 //Check to see if the end of the header is fully received
@@ -282,6 +282,8 @@ int main(int argc,char *argv[]) {
         //Print the URL just parsed to the stdout
 
         //Free buffers and URLs
+        error:
+
         free(currentURL);
         free(fullBuffer);
         memset(recvBuff, 0, strlen(recvBuff));
