@@ -166,7 +166,9 @@ int main(int argc,char *argv[]) {
         char * fullBuffer = strdup("");
 
         //Receive the response from the server
-        while (contentLength != total && ((numberOfBytesRead = recv(socketFD, recvBuff, sizeof(recvBuff) - 1, 0)) > 0)) {
+        while (contentLength != total && (numberOfBytesRead = read(socketFD, recvBuff, sizeof(recvBuff))) > 0) {
+
+            printf("%d\n",numberOfBytesRead);
 
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
@@ -272,12 +274,13 @@ int main(int argc,char *argv[]) {
             strcat(fullBuffer,recvBuff);
             memset(recvBuff, 0, strlen(recvBuff));
 
+            if(total == contentLength){
+                close(socketFD);
+            }
+
         }
 
-        //shutdown(socketFD,SHUT_RDWR);
-        //usleep(20000);
-        //close(socketFD);
-        closeSocket(socketFD);
+        //closeSocket(socketFD);
 
         if(total == contentLength) {
             parseHTML(fullBuffer, currentURL);
@@ -289,6 +292,9 @@ int main(int argc,char *argv[]) {
         //Free buffers and URLs
         free(currentURL);
         free(fullBuffer);
+        usleep(20000);
+        //shutdown(socketFD,SHUT_RDWR);
+        close(socketFD);
     }
 
     clearHistory();
