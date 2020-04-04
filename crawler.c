@@ -353,7 +353,7 @@ void parseHTML(char buffer[], URLInfo * currentURL)
 
             startURL = &(startURL[4]);
 
-            startURL = strcasestr(anchor, "=");
+            startURL = strcasestr(startURL, "=");
             startURL = &(startURL[1]);
 
 
