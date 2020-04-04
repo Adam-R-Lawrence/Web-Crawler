@@ -19,7 +19,7 @@ char givenFirstComponentOfHostname[MAX_URL_SIZE + NULL_BYTE];
 int totalURLs = 0;
 
 
-
+//
 int main(int argc,char *argv[]) {
 
     //
