@@ -28,6 +28,10 @@ int main(int argc,char *argv[]) {
          exit(EXIT_FAILURE);
     }
 
+    //
+    printf("STARTED PROGRAM\n");
+    //
+
     //Check if command line URL is valid
     if (checkIfValidURL(argv[1]) == IS_VALID_URL){
 
@@ -44,6 +48,10 @@ int main(int argc,char *argv[]) {
         exit(EXIT_FAILURE);
 
     }
+
+    //
+    printf("GIVEN URL WAS VALID\n");
+    //
 
     //Store the first component of the given host for future comparisons
     strcpy(givenFirstComponentOfHostname,pointerTopURL->firstComponentOfHostname);
@@ -90,10 +98,10 @@ int main(int argc,char *argv[]) {
         currentURL = malloc(sizeof(URLInfo));
 
         dequeueURL(currentURL);
-        ///printf("Full URL: %s\n", currentURL->fullURL);
-        ///printf("First Component: %s\n", currentURL->firstComponentOfHostname);
-        ///printf("Hostname: %s\n", currentURL->hostname);
-        ///printf("Path: %s\n", currentURL->path);
+        printf("Full URL: %s\n", currentURL->fullURL);
+        printf("First Component: %s\n", currentURL->firstComponentOfHostname);
+        printf("Hostname: %s\n", currentURL->hostname);
+        printf("Path: %s\n", currentURL->path);
 
 
         if((strcmp(currentURL->firstComponentOfHostname,givenFirstComponentOfHostname) == 0) && commandLineURLParsed == TRUE){
@@ -112,7 +120,7 @@ int main(int argc,char *argv[]) {
         //Details of the Server
         server = gethostbyname(currentURL->hostname);
         if(server == NULL){
-            //fprintf(stderr,"NotValidHostname\n");
+            printf("NotValidHostname\n");
             free(currentURL);
             continue;
         }
