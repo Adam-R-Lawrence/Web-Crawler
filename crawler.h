@@ -7,7 +7,7 @@
 
 /* Define Constants */
 #define PORT 80
-#define HTTP_REQUEST_HEADER "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: arlawrence\r\n\r\n"
+#define HTTP_REQUEST_HEADER "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: arlawrence\r\n"
 #define MAX_NUMBER_OF_PAGES_FETCHED 100
 #define IS_VALID_URL 1
 #define IS_NOT_VALID_URL 0
