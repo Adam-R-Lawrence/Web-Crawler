@@ -273,7 +273,7 @@ int main(int argc,char *argv[]) {
 
         }
 
-        shutdown(socketFD,SHUT_RDWR);
+        //shutdown(socketFD,SHUT_RDWR);
         close(socketFD);
 
         if(total == contentLength) {
