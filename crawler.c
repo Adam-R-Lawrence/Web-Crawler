@@ -178,8 +178,6 @@ int main(int argc,char *argv[]) {
         //Receive the response from the server
         while (contentLength != total && (numberOfBytesRead = read(socketFD, recvBuff, sizeof(recvBuff))) > 0) {
 
-            printf("%d\n",numberOfBytesRead);
-
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
@@ -236,28 +234,9 @@ int main(int argc,char *argv[]) {
 
                if(statusCode == 200){
                     //Success, All is good
-               } else if(statusCode == 404 || statusCode == 410 ||statusCode == 414){
-                   //Critical Failure
-                    break;
-               }
-               else if(statusCode == 503){
-                   //Temporary Failure
-                    break;
-               }
-               else if(statusCode == 504){
-                    break;
-               }
-               /*
-               else if(statusCode == 301){
-
-               }
-               else if(statusCode == 401){
-
-               } */
-               else {
-                   //We may ignore everything else
+               } else{
                    break;
-               };
+               }
 
                 //Check to see if the end of the header is fully received
                 if (endOfHeaderPointer != NULL) {
@@ -290,6 +269,7 @@ int main(int argc,char *argv[]) {
 
         }
 
+
         //closeSocket(socketFD);
         //printf("%s\n",fullBuffer);
 
@@ -304,8 +284,9 @@ int main(int argc,char *argv[]) {
         //Free buffers and URLs
         free(currentURL);
         free(fullBuffer);
-        usleep(20000);
+        memset(recvBuff, 0, strlen(recvBuff));
         //shutdown(socketFD,SHUT_RDWR);
+        usleep(20000);
         close(socketFD);
     }
 
@@ -399,9 +380,11 @@ void parseHTML(char buffer[], URLInfo * currentURL)
                 ei = (endURL ? endURL - anchor : -1);
 
                 URLLength = ei - si;
-                possibleURL = malloc(MAX_URL_SIZE + NULL_BYTE + 1000);
+                printf("URLENGTH: %d\n",URLLength);
+                possibleURL = malloc(URLLength + NULL_BYTE);
                 memcpy(possibleURL, &anchor[si], URLLength);
                 possibleURL[URLLength] = NULL_BYTE_CHARACTER;
+                printf("%s\n",possibleURL);
 
 
 
@@ -413,7 +396,6 @@ void parseHTML(char buffer[], URLInfo * currentURL)
                 }
 
                 free(possibleURL);
-
                 //memset(possibleURL, 0, strlen(possibleURL));
             }
         }
