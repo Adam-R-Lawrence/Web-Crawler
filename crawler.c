@@ -105,11 +105,11 @@ int main(int argc,char *argv[]) {
         printf("\tHostname: %s\n", currentURL->hostname);
         printf("\tPath: %s\n", currentURL->path);
 
-
+        /*
         if((strcmp(currentURL->firstComponentOfHostname,givenFirstComponentOfHostname) == 0) && commandLineURLParsed == TRUE){
             free(currentURL);
             continue;
-        }
+        }*/
 
         commandLineURLParsed = TRUE;
 
