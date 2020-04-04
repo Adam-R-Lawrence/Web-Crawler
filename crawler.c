@@ -291,14 +291,15 @@ int main(int argc,char *argv[]) {
         }
 
         //closeSocket(socketFD);
-        printf("%s\n",fullBuffer);
+        //printf("%s\n",fullBuffer);
 
         if(total == contentLength) {
             parseHTML(fullBuffer, currentURL);
+            printf("http://%s%s\n",currentURL->hostname,currentURL->path);
+
         }
 
         //Print the URL just parsed to the stdout
-        printf("http://%s%s\n",currentURL->hostname,currentURL->path);
 
         //Free buffers and URLs
         free(currentURL);
@@ -398,7 +399,7 @@ void parseHTML(char buffer[], URLInfo * currentURL)
                 ei = (endURL ? endURL - anchor : -1);
 
                 URLLength = ei - si;
-                possibleURL = malloc(MAX_URL_SIZE + NULL_BYTE);
+                possibleURL = malloc(MAX_URL_SIZE + NULL_BYTE + 1000);
                 memcpy(possibleURL, &anchor[si], URLLength);
                 possibleURL[URLLength] = NULL_BYTE_CHARACTER;
 
