@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #include <netdb.h>
 #include "crawler.h"
-#include <errno.h>
-
 #include <unistd.h>
 
 
@@ -16,33 +14,24 @@ URLInfo *pointerBottomURL = NULL;
 URLInfo *pointerTopURL = NULL;
 uniqueURL * pointerToHistory = NULL;
 char givenFirstComponentOfHostname[MAX_URL_SIZE + NULL_BYTE];
-int totalURLs = 0;
 
 
 
 int main(int argc,char *argv[]) {
 
-    //
-    //printf("STARTED PROGRAM\n");
-    //
-
     //Check if a URL was given
     if (argc == 1){
+
          fprintf(stderr,"No URL was given\n");
          exit(EXIT_FAILURE);
+
     }
-
-
 
     //Check if command line URL is valid
     if (checkIfValidURL(argv[1]) == IS_VALID_URL){
 
         enqueueURL(argv[1]);
         parseURL(NULL);
-
-        //Need to remove later//
-        totalURLs++;
-        ///////////////////////
 
     } else {
 
@@ -51,14 +40,10 @@ int main(int argc,char *argv[]) {
 
     }
 
-    //
-    //printf("GIVEN URL WAS VALID\n");
-    //
-
-    //Store the first component of the given host for future comparisons
+    //Store all but the first component of the hostname for future comparisons
     strcpy(givenFirstComponentOfHostname,pointerTopURL->allButFirstComponent);
 
-    //Variables for using a socket
+    //Variables for using the socket
     int socketFD;
     char sendBuff[SEND_BUFFER_LENGTH + NULL_BYTE] = {0};
     struct sockaddr_in serv_addr;
@@ -100,36 +85,34 @@ int main(int argc,char *argv[]) {
         contentLength = -2;
         int isHeader = TRUE;
 
-
-        ///printf("Number of Pages Fetched: %d\n",numberOfPagesFetched);
-
+        //Get the URL to crawl
         currentURL = malloc(sizeof(URLInfo));
-
         dequeueURL(currentURL);
+
+        ////Remove Later
         printf("\tFull URL: %s\n", currentURL->fullURL);
         printf("\tFirst Component: %s\n", currentURL->allButFirstComponent);
         printf("\tHostname: %s\n", currentURL->hostname);
         printf("\tPath: %s\n", currentURL->path);
         printf("\tTimes Refetched: %d\n", currentURL->refetchTimes);
+        ////
 
 
-
-
+        //Check if all but the first components of the current URL match with the command line URL
         if((strcmp(currentURL->allButFirstComponent, givenFirstComponentOfHostname) != 0) && commandLineURLParsed == TRUE){
             free(currentURL);
             continue;
         }
-
-
         commandLineURLParsed = TRUE;
 
-
-        if(currentURL->refetchTimes == 0 || currentURL->refetchTimes == 5) {
+        //Check if the current URL has already been parsed (Ignore if we are purposely refetching)
+        if(currentURL->refetchTimes == 0 || currentURL->refetchTimes == REFETCH_LIMIT) {
             if (checkHistory(currentURL) == IS_NOT_VALID_URL) {
                 free(currentURL);
                 continue;
             }
         }
+
 
         //Details of the Server
         server = gethostbyname(currentURL->hostname);
@@ -143,13 +126,9 @@ int main(int argc,char *argv[]) {
         //Create the socket
         socketFD = socket(AF_INET, SOCK_STREAM, 0);
         if(socketFD < NO_SOCKET_OPENED) {
-            //printf("Error with opening socket\n");
-            //exit(EXIT_FAILURE);
-            perror("socket error\n");
+            fprintf(stderr,"Error with opening socket\n");
             free(currentURL);
             continue;
-        } else {
-            ///fprintf(stderr,"Socket opened successfully.\n");
         }
 
         //initialise server address
@@ -158,19 +137,15 @@ int main(int argc,char *argv[]) {
         //initialise send buffer
         memset(sendBuff, '0', sizeof(sendBuff));
 
-
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = htons(PORT);
         memcpy(&serv_addr.sin_addr.s_addr,server->h_addr,server->h_length);
 
         //Connect to the desired Server
         if(connect(socketFD, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-            printf("Error with connecting\n");
-            //exit(EXIT_FAILURE);
+            fprintf(stderr,"Error with connecting\n");
             free(currentURL);
             continue;
-        } else {
-            //fprintf(stderr,"Connected successfully\n");
         }
 
         //Send HTTP GET request to the server
@@ -179,14 +154,15 @@ int main(int argc,char *argv[]) {
         }else {
             sprintf(sendBuff, HTTP_REQUEST_HEADER, currentURL->path, currentURL->hostname, USERNAME);
         }
-        printf("GET REQUEST: %s\n",sendBuff);
 
+        ////Remove Later
+        printf("GET REQUEST: %s\n",sendBuff);
+        ////Remove Later
 
         if(send(socketFD, sendBuff, strlen(sendBuff), 0) < 0) {
             fprintf(stderr,"Error with sending GET request\n");
-            exit(EXIT_FAILURE);
-        } else {
-            //fprintf(stderr,"Successfully sent html fetch request\n");
+            free(currentURL);
+            continue;
         }
 
 
@@ -218,10 +194,6 @@ int main(int argc,char *argv[]) {
                 memcpy(contentType, &recvBuff[scti], cti-scti);
                 contentType[cti-scti] = NULL_BYTE_CHARACTER;
 
-                //printf("%d, %d\n",scti,cti);
-
-
-                //printf("content Type: %s\n",contentType);
 
 
                 if((strcasestr(contentType,VALID_MIME_TYPE) == NULL)){
@@ -229,10 +201,6 @@ int main(int argc,char *argv[]) {
                     break;
                 }
 
-
-                //Need to remove later//
-                //printf("\nContent-Type: %s\n",contentType);
-                ////////////////////////
 
                 //Content Length
                 contentLengthHeader = strcasestr(recvBuff, CONTENT_LENGTH);
@@ -247,40 +215,30 @@ int main(int argc,char *argv[]) {
                 cli = (contentLengthHeader ? contentLengthHeader - recvBuff : -1);
                 contentLength = atoi(&(recvBuff[cli]));
 
-                //Need to remove later//
-                ///printf("\nContent-Length: %d\n", contentLength);
-                /////////////////////////
 
                 //Status Code
                 pageStatusCode = strcasestr(recvBuff, STATUS_CODE) + strlen(STATUS_CODE);
                 sci = (pageStatusCode ? pageStatusCode - recvBuff : -1);
                 statusCode = atoi(&(recvBuff[sci]));
 
-                //Need to remove later//
-                ////////////////////////
-
                 if(statusCode == 200){
                     //Success, All is good
                } else if(statusCode == 503){
                    enqueueURL(currentURL->fullURL);
                    parseURL(currentURL);
-                   //printf("Number of times refetched1: %d\n",currentURL->refetchTimes);
 
                    pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
-                   //printf("Number of times refetched2: %d\n",pointerTopURL->refetchTimes);
-                   //goto error;
+
                } else if(statusCode == 401){
                    enqueueURL(currentURL->fullURL);
                    parseURL(currentURL);
                    pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
                    pointerTopURL->needAuthorization = TRUE;
-                   //goto error;
                } else if (statusCode == 301){
 
 
                    locationHeader = strcasestr(recvBuff, LOCATION_HEADER);
                    if (locationHeader == NULL){
-                       //fprintf(stderr, "No Content Length Header\n");
                        break;
                    }
 
@@ -347,40 +305,27 @@ int main(int argc,char *argv[]) {
 
         }
 
-
-        //closeSocket(socketFD);
-        //printf("%s\n",fullBuffer);
-
-        //printf("HELP3\n");
-
         if(total == contentLength) {
             parseHTML(fullBuffer, currentURL);
 
         }
 
-
-        //printf("HELP4\n");
+        error:
 
         //Print the URL just parsed to the stdout
-
-        //Free buffers and URLs
-        error:
         printf("http://%s%s\n",currentURL->hostname,currentURL->path);
 
+
+        //Free buffers and close down the connection
         free(fullBuffer);
-
-
         free(currentURL);
         memset(recvBuff, 0, strlen(recvBuff));
-        //shutdown(socketFD,SHUT_RDWR);
-        usleep(20000);
         close(socketFD);
-        printf("HELP5\n");
 
     }
 
+    //Clear the History
     clearHistory();
-
     return 0;
 }
 
@@ -480,7 +425,6 @@ void parseHTML(char buffer[], URLInfo * currentURL)
                 if (checkIfValidURL(possibleURL) == IS_VALID_URL) {
                     enqueueURL(possibleURL);
                     parseURL(currentURL);
-                    totalURLs++;
 
                 }
 
@@ -621,8 +565,8 @@ void parseURL(URLInfo * currentURL) {
         memcpy(pointerTopURL->hostname, &pointerURL[0], fsi);
         pointerTopURL->hostname[fsi] = NULL_BYTE_CHARACTER;
 
-        //Therefore path = ""
-        strcpy(pointerTopURL->path,"");
+        //Therefore path = "/"
+        strcpy(pointerTopURL->path,"/");
     }
 
 

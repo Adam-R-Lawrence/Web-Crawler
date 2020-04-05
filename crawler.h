@@ -7,8 +7,8 @@
 
 /* Define Constants */
 #define PORT 80
-#define HTTP_REQUEST_HEADER "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n"
-#define REQUEST_WITH_AUTHORIZATION "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: Basic YXJsYXdyZW5jZTpwYXNzd29yZA==\r\n\r\n"
+#define HTTP_REQUEST_HEADER "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n"
+#define REQUEST_WITH_AUTHORIZATION "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: Basic YXJsYXdyZW5jZTpwYXNzd29yZA==\r\n\r\n"
 #define USERNAME "arlawrence"
 #define MAX_NUMBER_OF_PAGES_FETCHED 100
 #define IS_VALID_URL 1
@@ -28,10 +28,10 @@
 #define SEND_BUFFER_LENGTH 2100
 #define RECEIVED_BUFFER_LENGTH 3000
 #define NO_SOCKET_OPENED 0
+#define REFETCH_LIMIT 5
 
 /* Define Enumerations */
 enum boolean {FALSE, TRUE};
-
 
 /* Struct Typedefs */
 typedef struct uniqueURL {
@@ -50,7 +50,6 @@ typedef struct URLInfo {
     struct URLInfo *nextNode;
 } URLInfo;
 
-
 /* Function Prototypes */
 void parseHTML(char buffer[], URLInfo *currentURL);
 int checkIfValidURL(char possibleURL[]);
@@ -59,6 +58,5 @@ void dequeueURL(URLInfo *toFetchURL);
 void parseURL(URLInfo * currentURL);
 int checkHistory(URLInfo * URLtoCheck);
 void clearHistory();
-
 
 #endif //CODE_CRAWLER_H
