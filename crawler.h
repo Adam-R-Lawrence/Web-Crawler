@@ -7,7 +7,8 @@
 
 /* Define Constants */
 #define PORT 80
-#define HTTP_REQUEST_HEADER "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: Basic YXJsYXdyZW5jZTpwYXNzd29yZA==\r\n\r\n"
+#define HTTP_REQUEST_HEADER "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n"
+#define REQUEST_WITH_AUTHORIZATION "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: Basic YXJsYXdyZW5jZTpwYXNzd29yZA==\r\n\r\n"
 #define USERNAME "arlawrence"
 #define MAX_NUMBER_OF_PAGES_FETCHED 100
 #define IS_VALID_URL 1

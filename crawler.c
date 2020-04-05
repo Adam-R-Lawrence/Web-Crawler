@@ -87,8 +87,8 @@ int main(int argc,char *argv[]) {
 
     //Content Type Header
     char *contentTypeHeader;
-    char contentType[100];
-    int cti;
+    char contentType[1000];
+    int cti,scti;
 
     int commandLineURLParsed = FALSE;
 
@@ -191,31 +191,41 @@ int main(int argc,char *argv[]) {
 
         //Receive the response from the server
         while (contentLength != total && (numberOfBytesRead = read(socketFD, recvBuff, sizeof(recvBuff))) > 0) {
-            printf("%s", recvBuff);
 
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
                 //Content Type
                 contentTypeHeader = strcasestr(recvBuff, CONTENT_TYPE);
+                //printf("content Type: %s\n",contentLengthHeader);
+
                 if (contentTypeHeader == NULL){
                     //fprintf(stderr, "No Content Length Header\n");
                     break;
                 }
-                contentTypeHeader += strlen(CONTENT_TYPE);
-                while(contentTypeHeader[0] == ' '){
+                scti = (contentTypeHeader ? contentTypeHeader - recvBuff : -1);
+                while(contentTypeHeader[0] != '\n'){
                     contentTypeHeader++;
                 }
 
                 cti = (contentTypeHeader ? contentTypeHeader - recvBuff : -1);
-                memcpy(contentType, &recvBuff[cti], 9);
-                contentType[9] = NULL_BYTE_CHARACTER;
+                memcpy(contentType, &recvBuff[cti], cti-scti);
+                contentType[cti-scti] = NULL_BYTE_CHARACTER;
+
+                printf("%d, %d\n",scti,cti);
 
 
-                
+                printf("content Type: %s\n",contentType);
+
+
+                if((strcasestr(contentType,VALID_MIME_TYPE) == NULL)){
+                    ///printf("\nNot VALID MIME TYPE\n");
+                    break;
+                }
+
 
                 //Need to remove later//
-                ///printf("\nContent-Type: %s\n",contentType);
+                //printf("\nContent-Type: %s\n",contentType);
                 ////////////////////////
 
                 //Content Length
@@ -259,21 +269,18 @@ int main(int argc,char *argv[]) {
 
                } else if (statusCode == 301){
 
-                   printf("Recognised it as 301\n");
 
                    locationHeader = strcasestr(recvBuff, LOCATION_HEADER);
                    if (locationHeader == NULL){
                        //fprintf(stderr, "No Content Length Header\n");
                        break;
                    }
-                   printf("Found Location Header\n");
 
                    locationHeader += strlen(LOCATION_HEADER);
                    while(locationHeader[0] == ' '){
                        locationHeader++;
                    }
 
-                   printf("Found Start index\n");
 
                    endLocationHeader = locationHeader;
 
@@ -281,13 +288,9 @@ int main(int argc,char *argv[]) {
                        endLocationHeader++;
                    }
 
-                   printf("Found End index\n");
-
-
                    elhi = (endLocationHeader ? endLocationHeader - recvBuff : -1);
 
                    lhi = (locationHeader ? locationHeader - recvBuff : -1);
-                   printf("Found Location Header URL indexes: %d, %d\n",lhi,elhi);
 
                    memcpy(URLFor301, &recvBuff[lhi], elhi - lhi);
                    URLFor301[elhi - lhi] = NULL_BYTE_CHARACTER;
