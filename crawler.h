@@ -19,6 +19,7 @@
 #define END_OF_HTTP_HEADER "\r\n\r\n"
 #define CONTENT_LENGTH "Content-Length:"
 #define CONTENT_TYPE "Content-Type:"
+#define LOCATION_HEADER "Location:"
 #define STATUS_CODE "HTTP/1.1 "
 #define VALID_MIME_TYPE "text/html"
 #define NULL_BYTE_CHARACTER '\0'
@@ -44,9 +45,10 @@ typedef struct URLInfo {
     char allButFirstComponent[MAX_URL_SIZE + NULL_BYTE];
     char path[MAX_URL_SIZE + NULL_BYTE];
     int validityOfURL;
-    int refetchedTimes;
+    int refetchTimes;
     struct URLInfo *nextNode;
 } URLInfo;
+
 
 /* Function Prototypes */
 void parseHTML(char buffer[], URLInfo *currentURL);

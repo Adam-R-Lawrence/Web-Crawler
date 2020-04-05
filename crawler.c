@@ -75,6 +75,12 @@ int main(int argc,char *argv[]) {
     char *contentLengthHeader;
     int contentLength, cli;
 
+    //Location Header (For 301)
+    char * locationHeader;
+    char * endLocationHeader;
+    int  lhi, elhi;
+    char URLFor301[MAX_URL_SIZE+NULL_BYTE];
+
     //Status Code
     char * pageStatusCode;
     int statusCode, sci;
@@ -104,6 +110,8 @@ int main(int argc,char *argv[]) {
         printf("\tFirst Component: %s\n", currentURL->allButFirstComponent);
         printf("\tHostname: %s\n", currentURL->hostname);
         printf("\tPath: %s\n", currentURL->path);
+        printf("\tTimes Refetched: %d\n", currentURL->refetchTimes);
+
 
 
 
@@ -115,11 +123,13 @@ int main(int argc,char *argv[]) {
 
         commandLineURLParsed = TRUE;
 
-        if(checkHistory(currentURL) == IS_NOT_VALID_URL){
-            free(currentURL);
-            continue;
-        }
 
+        if(currentURL->refetchTimes == 0 || currentURL->refetchTimes == 5) {
+            if (checkHistory(currentURL) == IS_NOT_VALID_URL) {
+                free(currentURL);
+                continue;
+            }
+        }
 
         //Details of the Server
         server = gethostbyname(currentURL->hostname);
@@ -238,7 +248,51 @@ int main(int argc,char *argv[]) {
 
                if(statusCode == 200){
                     //Success, All is good
-               } else{
+               } else if(statusCode == 503){
+                   printf("Test\n\n");
+                   enqueueURL(currentURL->fullURL);
+                   parseURL(currentURL);
+                   printf("Number of times refetched1: %d\n",currentURL->refetchTimes);
+
+                   pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
+                   printf("Number of times refetched2: %d\n",pointerTopURL->refetchTimes);
+                   goto error;
+               } else if(statusCode == 401){
+
+               } else if (statusCode == 301){
+
+                   locationHeader = strcasestr(recvBuff, LOCATION_HEADER);
+                   if (locationHeader == NULL){
+                       //fprintf(stderr, "No Content Length Header\n");
+                       break;
+                   }
+
+                   locationHeader += strlen(LOCATION_HEADER);
+                   while(locationHeader[0] == ' '){
+                       locationHeader++;
+                   }
+
+
+                   endLocationHeader = locationHeader;
+
+                   while(endLocationHeader[0] != '\r'){
+                       endLocationHeader++;
+                   }
+
+                   elhi = (endLocationHeader ? endLocationHeader - recvBuff : -1);
+
+                   lhi = (locationHeader ? locationHeader - recvBuff : -1);
+
+                   memcpy(URLFor301, &recvBuff[lhi], elhi - lhi);
+                   URLFor301[elhi - lhi] = NULL_BYTE_CHARACTER;
+                   printf("URL301: %s\n",URLFor301);
+
+                   enqueueURL(URLFor301);
+                   parseURL(currentURL);
+                   goto error;
+
+               }
+               else {
                    goto error;
                }
 
@@ -279,14 +333,16 @@ int main(int argc,char *argv[]) {
 
         if(total == contentLength) {
             parseHTML(fullBuffer, currentURL);
-            //printf("http://%s%s\n",currentURL->hostname,currentURL->path);
 
         }
+
 
         //Print the URL just parsed to the stdout
 
         //Free buffers and URLs
         error:
+        printf("http://%s%s\n",currentURL->hostname,currentURL->path);
+
         free(fullBuffer);
 
 
@@ -577,6 +633,7 @@ void enqueueURL(char *URL){
     }
     pointerTopURL = TempPointer;
 
+    pointerTopURL->refetchTimes = 0;
 }
 
 void dequeueURL(URLInfo *toFetchURL){
@@ -587,6 +644,7 @@ void dequeueURL(URLInfo *toFetchURL){
     strcpy(toFetchURL->hostname, pointerBottomURL->hostname);
     strcpy(toFetchURL->allButFirstComponent, pointerBottomURL->allButFirstComponent);
     strcpy(toFetchURL->path, pointerBottomURL->path);
+    toFetchURL->refetchTimes = pointerBottomURL->refetchTimes;
 
 
     URLInfo *TempPointer = pointerBottomURL;
