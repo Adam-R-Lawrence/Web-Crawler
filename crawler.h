@@ -59,7 +59,6 @@ void dequeueURL(URLInfo *toFetchURL);
 void parseURL(URLInfo * currentURL);
 int checkHistory(URLInfo * URLtoCheck);
 void clearHistory();
-int getSO_ERROR(int fd);
-void closeSocket(int fd);
+
 
 #endif //CODE_CRAWLER_H
