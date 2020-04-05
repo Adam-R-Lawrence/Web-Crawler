@@ -350,7 +350,7 @@ int main(int argc,char *argv[]) {
 
 
         //closeSocket(socketFD);
-        //printf("%s\n",fullBuffer);
+        printf("%s\n",fullBuffer);
 
         if(total == contentLength) {
             parseHTML(fullBuffer, currentURL);
