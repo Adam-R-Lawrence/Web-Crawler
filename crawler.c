@@ -270,13 +270,13 @@ int main(int argc,char *argv[]) {
 
                    pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
                    printf("Number of times refetched2: %d\n",pointerTopURL->refetchTimes);
-                   goto error;
+                   //goto error;
                } else if(statusCode == 401){
                    enqueueURL(currentURL->fullURL);
                    parseURL(currentURL);
                    pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
                    pointerTopURL->needAuthorization = TRUE;
-                   goto error;
+                   //goto error;
                } else if (statusCode == 301){
 
 
@@ -308,10 +308,12 @@ int main(int argc,char *argv[]) {
 
                    enqueueURL(URLFor301);
                    parseURL(currentURL);
-                   goto error;
+                   //goto error;
+
+               } else if (statusCode == 404 ||statusCode == 410 ||statusCode == 414 ||statusCode == 504){
 
                }
-               else {
+               else{
                    goto error;
                }
 
