@@ -276,7 +276,7 @@ int main(int argc,char *argv[]) {
                    parseURL(currentURL);
                    pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
                    pointerTopURL->needAuthorization = TRUE;
-
+                   goto error;
                } else if (statusCode == 301){
 
 
