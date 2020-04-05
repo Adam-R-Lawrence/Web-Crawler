@@ -262,17 +262,21 @@ int main(int argc,char *argv[]) {
 
                } else if (statusCode == 301){
 
+                   printf("Recognised it as 301\n");
+
                    locationHeader = strcasestr(recvBuff, LOCATION_HEADER);
                    if (locationHeader == NULL){
                        //fprintf(stderr, "No Content Length Header\n");
                        break;
                    }
+                   printf("Found Location Header\n");
 
                    locationHeader += strlen(LOCATION_HEADER);
                    while(locationHeader[0] == ' '){
                        locationHeader++;
                    }
 
+                   printf("Found Start index\n");
 
                    endLocationHeader = locationHeader;
 
@@ -280,9 +284,13 @@ int main(int argc,char *argv[]) {
                        endLocationHeader++;
                    }
 
+                   printf("Found End index\n");
+
+
                    elhi = (endLocationHeader ? endLocationHeader - recvBuff : -1);
 
                    lhi = (locationHeader ? locationHeader - recvBuff : -1);
+                   printf("Found Location Header URL indexes: %d, %d\n",lhi,elhi);
 
                    memcpy(URLFor301, &recvBuff[lhi], elhi - lhi);
                    URLFor301[elhi - lhi] = NULL_BYTE_CHARACTER;
