@@ -665,6 +665,8 @@ void dequeueURL(URLInfo *toFetchURL){
     strcpy(toFetchURL->allButFirstComponent, pointerBottomURL->allButFirstComponent);
     strcpy(toFetchURL->path, pointerBottomURL->path);
     toFetchURL->refetchTimes = pointerBottomURL->refetchTimes;
+    toFetchURL->needAuthorization = pointerBottomURL->needAuthorization;
+
 
 
     URLInfo *TempPointer = pointerBottomURL;
