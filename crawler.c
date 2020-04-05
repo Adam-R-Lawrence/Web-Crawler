@@ -196,6 +196,68 @@ int main(int argc,char *argv[]) {
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
+                if (statusCode == 200) {
+                    //Success, All is good
+                }
+                else if (statusCode == 503) {
+                    printf("Test\n\n");
+                    enqueueURL(currentURL->fullURL);
+                    parseURL(currentURL);
+                    printf("Number of times refetched1: %d\n", currentURL->refetchTimes);
+
+                    pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
+                    printf("Number of times refetched2: %d\n", pointerTopURL->refetchTimes);
+                    goto error;
+                }
+                else if (statusCode == 401) {
+
+                }
+                else if (statusCode == 301) {
+
+                    printf("Recognised it as 301\n");
+
+                    locationHeader = strcasestr(recvBuff, LOCATION_HEADER);
+                    if (locationHeader == NULL) {
+                        //fprintf(stderr, "No Content Length Header\n");
+                        break;
+                    }
+                    printf("Found Location Header\n");
+
+                    locationHeader += strlen(LOCATION_HEADER);
+                    while (locationHeader[0] == ' ') {
+                        locationHeader++;
+                    }
+
+                    printf("Found Start index\n");
+
+                    endLocationHeader = locationHeader;
+
+                    while (endLocationHeader[0] != '\r') {
+                        endLocationHeader++;
+                    }
+
+                    printf("Found End index\n");
+
+
+                    elhi = (endLocationHeader ? endLocationHeader - recvBuff : -1);
+
+                    lhi = (locationHeader ? locationHeader - recvBuff : -1);
+                    printf("Found Location Header URL indexes: %d, %d\n", lhi, elhi);
+
+                    memcpy(URLFor301, &recvBuff[lhi], elhi - lhi);
+                    URLFor301[elhi - lhi] = NULL_BYTE_CHARACTER;
+                    printf("URL301: %s\n", URLFor301);
+
+                    enqueueURL(URLFor301);
+                    parseURL(currentURL);
+                    goto error;
+
+                }
+                else {
+                    goto error;
+                }
+
+
                 //Content Type
                 contentTypeHeader = strcasestr(recvBuff, CONTENT_TYPE);
                 if (contentTypeHeader == NULL){
@@ -247,63 +309,7 @@ int main(int argc,char *argv[]) {
                 ///printf("\nStatus-Code: %d\n", statusCode);
                 ////////////////////////
 
-               if(statusCode == 200){
-                    //Success, All is good
-               } else if(statusCode == 503){
-                   printf("Test\n\n");
-                   enqueueURL(currentURL->fullURL);
-                   parseURL(currentURL);
-                   printf("Number of times refetched1: %d\n",currentURL->refetchTimes);
-
-                   pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
-                   printf("Number of times refetched2: %d\n",pointerTopURL->refetchTimes);
-                   goto error;
-               } else if(statusCode == 401){
-
-               } else if (statusCode == 301){
-
-                   printf("Recognised it as 301\n");
-
-                   locationHeader = strcasestr(recvBuff, LOCATION_HEADER);
-                   if (locationHeader == NULL){
-                       //fprintf(stderr, "No Content Length Header\n");
-                       break;
-                   }
-                   printf("Found Location Header\n");
-
-                   locationHeader += strlen(LOCATION_HEADER);
-                   while(locationHeader[0] == ' '){
-                       locationHeader++;
-                   }
-
-                   printf("Found Start index\n");
-
-                   endLocationHeader = locationHeader;
-
-                   while(endLocationHeader[0] != '\r'){
-                       endLocationHeader++;
-                   }
-
-                   printf("Found End index\n");
-
-
-                   elhi = (endLocationHeader ? endLocationHeader - recvBuff : -1);
-
-                   lhi = (locationHeader ? locationHeader - recvBuff : -1);
-                   printf("Found Location Header URL indexes: %d, %d\n",lhi,elhi);
-
-                   memcpy(URLFor301, &recvBuff[lhi], elhi - lhi);
-                   URLFor301[elhi - lhi] = NULL_BYTE_CHARACTER;
-                   printf("URL301: %s\n",URLFor301);
-
-                   enqueueURL(URLFor301);
-                   parseURL(currentURL);
-                   goto error;
-
-               }
-               else {
-                   goto error;
-               }
+               
 
                 //Check to see if the end of the header is fully received
                 if (endOfHeaderPointer != NULL) {
