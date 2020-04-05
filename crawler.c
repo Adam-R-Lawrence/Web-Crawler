@@ -60,7 +60,7 @@ int main(int argc,char *argv[]) {
 
     //Variables for using a socket
     int socketFD;
-    char sendBuff[SEND_BUFFER_LENGTH] = {0};
+    char sendBuff[SEND_BUFFER_LENGTH + NULL_BYTE] = {0};
     struct sockaddr_in serv_addr;
     char recvBuff[RECEIVED_BUFFER_LENGTH] = {0};
     struct hostent *server;
@@ -174,8 +174,14 @@ int main(int argc,char *argv[]) {
         }
 
         //Send HTTP GET request to the server
-        sprintf(sendBuff, HTTP_REQUEST_HEADER, currentURL->path, currentURL->hostname, USERNAME);
+        if(currentURL->needAuthorization == TRUE){
+            sprintf(sendBuff, REQUEST_WITH_AUTHORIZATION, currentURL->path, currentURL->hostname, USERNAME);
+        }else {
+            sprintf(sendBuff, HTTP_REQUEST_HEADER, currentURL->path, currentURL->hostname, USERNAME);
+        }
         printf("GET REQUEST: %s\n",sendBuff);
+
+
         if(send(socketFD, sendBuff, strlen(sendBuff), 0) < 0) {
             fprintf(stderr,"Error with sending GET request\n");
             exit(EXIT_FAILURE);
@@ -266,6 +272,10 @@ int main(int argc,char *argv[]) {
                    printf("Number of times refetched2: %d\n",pointerTopURL->refetchTimes);
                    goto error;
                } else if(statusCode == 401){
+                   enqueueURL(currentURL->fullURL);
+                   parseURL(currentURL);
+                   pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
+                   pointerTopURL->needAuthorization = TRUE;
 
                } else if (statusCode == 301){
 
@@ -643,6 +653,7 @@ void enqueueURL(char *URL){
     pointerTopURL = TempPointer;
 
     pointerTopURL->refetchTimes = 0;
+    pointerTopURL->needAuthorization = FALSE;
 }
 
 void dequeueURL(URLInfo *toFetchURL){
