@@ -209,7 +209,7 @@ int main(int argc,char *argv[]) {
                 }
 
                 cti = (contentTypeHeader ? contentTypeHeader - recvBuff : -1);
-                memcpy(contentType, &recvBuff[cti], cti-scti);
+                memcpy(contentType, &recvBuff[scti], cti-scti);
                 contentType[cti-scti] = NULL_BYTE_CHARACTER;
 
                 printf("%d, %d\n",scti,cti);
