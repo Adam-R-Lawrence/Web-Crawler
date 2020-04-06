@@ -187,6 +187,8 @@ int main(int argc,char *argv[]) {
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
+                printf("####%s####\n",recvBuff);
+
                 //Find the Content Type Header
                 if ((contentTypeHeader = strcasestr(recvBuff, CONTENT_TYPE)) == NULL){
                     break;
