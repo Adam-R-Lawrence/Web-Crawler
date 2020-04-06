@@ -505,6 +505,8 @@ int checkIfValidURL(char possibleURL[]) {
 void parseURL(URLInfo * currentURL) {
 
     char * pointerURL = &(pointerTopURL->fullURL[0]);
+    char * pathURL = &(pointerTopURL->path[0]);
+
 
     char * firstDot;
     int fdi;
@@ -521,31 +523,42 @@ void parseURL(URLInfo * currentURL) {
     //Get the html file name
     if((strcasestr(pointerTopURL->fullURL,".html") != NULL) && (strchr(pointerTopURL->fullURL,'/') == NULL)){
 
+        printf("HELLO: %s\n",pointerTopURL->fullURL);
+
 
         lastSlash = currentURL->path;
+        printf("HELLO2: %s\n",lastSlash);
+
         while((temp = strchr(lastSlash,'/')) != NULL){
             ++temp;
             lastSlash = temp;
         }
 
+        printf("HELLO2: %s\n",lastSlash);
 
 
 
-        fsi = (int) (lastSlash ? lastSlash - pointerTopURL->path : -1) -1;
+
+        fsi = (int) (lastSlash - currentURL->path);
+
 
         memcpy(pointerTopURL->path, currentURL->path, fsi);
         pointerTopURL->htmlFile[fsi] = NULL_BYTE_CHARACTER;
+
+
         strcat(pointerTopURL->path, pointerTopURL->fullURL);
+        printf("YAY? %s\n",pointerTopURL->path);
+
+
 
         strcpy(pointerTopURL->hostname,currentURL->hostname);
         strcpy(pointerTopURL->allButFirstComponent, currentURL->allButFirstComponent);
 
-        printf("Hello\n");
+
+
 
         return;
     }
-
-    lastSlash = pointerTopURL->fullURL;
 
     //Check if URL is Absolute (Fully Specified)
     if(strcasestr(pointerTopURL->fullURL,"http://") != NULL) {
@@ -553,7 +566,7 @@ void parseURL(URLInfo * currentURL) {
         pointerURL = &(pointerTopURL->fullURL[strlen("http://")]);
 
     }
-    //Check if URL is Absolute (Implied Protocol)
+        //Check if URL is Absolute (Implied Protocol)
     else if ((pointerTopURL->fullURL[0] == '/') && (pointerTopURL->fullURL[1] == '/')) {
 
         //If so move pointer to the character after the last slash
@@ -561,7 +574,7 @@ void parseURL(URLInfo * currentURL) {
 
 
     }
-    //Check if URL is Absolute (Implied Protocol and Hostname)
+        //Check if URL is Absolute (Implied Protocol and Hostname)
     else if (pointerTopURL->fullURL[0] == '/'){
 
         strcpy(pointerTopURL->hostname,currentURL->hostname);
@@ -570,26 +583,23 @@ void parseURL(URLInfo * currentURL) {
         pointerURL = &(pointerTopURL->fullURL[1]);
 
 
-
         firstSlash = strchr(pointerURL, '\0');
-        fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
-
-
-        memcpy(pointerTopURL->path, &pointerURL[0], (pointerTopURL->fullURL - lastSlash));
-        pointerTopURL->path[pointerTopURL->fullURL - lastSlash] = NULL_BYTE_CHARACTER;
+        fsi = (firstSlash ? firstSlash - pointerURL : -1);
+        memcpy(pointerTopURL->path, &pointerURL[0], fsi);
+        pointerTopURL->path[fsi] = NULL_BYTE_CHARACTER;
 
         return;
     }
 
 
-    //Pointer is now pointing to the beginning of the hostname or the specific file
+    //Pointer is now pointing to the beginning of the hostname
 
 
 
     //Find the end of the hostname
     if ((firstSlash = strchr(pointerURL, '/'))!= NULL) {
 
-        fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
+        fsi = (firstSlash ? firstSlash - pointerURL : -1);
 
 
         memcpy(pointerTopURL->hostname, &pointerURL[0], fsi);
@@ -599,8 +609,7 @@ void parseURL(URLInfo * currentURL) {
         pointerURL = &(pointerURL[fsi]);
 
         endURL = strchr(pointerURL, '\0');
-        eURLi = (int) (endURL ? endURL - pointerURL : -1);
-
+        eURLi = (endURL ? endURL - pointerURL : -1);
         memcpy(pointerTopURL->path, &pointerURL[0], eURLi);
         pointerTopURL->path[eURLi] = NULL_BYTE_CHARACTER;
 
@@ -608,10 +617,10 @@ void parseURL(URLInfo * currentURL) {
 
     }
     else
-    //If above == NUll that means there is no path
+        //If above == NUll that means there is no path
     {
         firstSlash = strchr(pointerURL, '\0');
-        fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
+        fsi = (firstSlash ? firstSlash - pointerURL : -1);
         memcpy(pointerTopURL->hostname, &pointerURL[0], fsi);
         pointerTopURL->hostname[fsi] = NULL_BYTE_CHARACTER;
 
@@ -620,21 +629,15 @@ void parseURL(URLInfo * currentURL) {
     }
 
 
+    if((firstDot = strchr(pointerTopURL->hostname, '.')) != NULL) {
+        firstDot = &(firstDot[1]);
+        fdi = (firstDot ? firstDot - pointerTopURL->hostname : -1);
 
-
-
-    //Get all but the first component of
-    if(strcmp(pointerTopURL->fullURL,pointerTopURL->htmlFile) != 0) {
-        if ((firstDot = strchr(pointerTopURL->hostname, '.')) != NULL) {
-            firstDot = &(firstDot[1]);
-            fdi = (int) (firstDot ? firstDot - pointerTopURL->hostname : -1);
-
-            memcpy(pointerTopURL->allButFirstComponent, firstDot, strlen(pointerTopURL->hostname) - fdi);
-            pointerTopURL->allButFirstComponent[strlen(pointerTopURL->hostname) - fdi] = NULL_BYTE_CHARACTER;
-        } else {
-            strcpy(pointerTopURL->allButFirstComponent, pointerTopURL->hostname);
-            pointerTopURL->path[strlen(pointerTopURL->allButFirstComponent)] = NULL_BYTE_CHARACTER;
-        }
+        memcpy(pointerTopURL->allButFirstComponent, firstDot, strlen(pointerTopURL->hostname) - fdi);
+        pointerTopURL->allButFirstComponent[strlen(pointerTopURL->hostname) - fdi] = NULL_BYTE_CHARACTER;
+    } else{
+        strcpy(pointerTopURL->allButFirstComponent,pointerTopURL->hostname);
+        pointerTopURL->path[strlen(pointerTopURL->allButFirstComponent)] = NULL_BYTE_CHARACTER;
     }
 }
 
