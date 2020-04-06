@@ -1,3 +1,9 @@
+/*
+ * Computer Systems (COMP30023) - Project 1
+ * Adam Lawrence || arlawrence || 992684
+ * arlawrence@student.unimelb.edu.au
+ */
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <arpa/inet.h>
