@@ -317,6 +317,7 @@ int main(int argc, char* argv[]) {
 
         }
 
+        printf("%s",fullBuffer);
     error:
 
         //Print the URL just parsed to the stdout
