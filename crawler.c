@@ -217,12 +217,20 @@ int main(int argc,char *argv[]) {
                 if ((contentLengthHeader = strcasestr(recvBuff, CONTENT_LENGTH)) == NULL){
                     break;
                 }
+                printf("IT MADE IT HERE1.1\n");
+
                 contentLengthHeader += strlen(CONTENT_LENGTH);
+                printf("IT MADE IT HERE1.2\n");
+
 
                 while(contentLengthHeader[0] == ' '){
                     contentLengthHeader++;
                 }
+                printf("IT MADE IT HERE1.3\n");
+
                 cli = (int) (contentLengthHeader - recvBuff);
+                printf("IT MADE IT HERE1.4\n");
+
                 contentLength = (int) strtol(&(recvBuff[cli]),NULL,10);
 
                 printf("IT MADE IT HERE2\n");
