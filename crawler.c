@@ -97,11 +97,11 @@ int main(int argc,char *argv[]) {
         dequeueURL(currentURL);
 
         ////Remove Later
-        printf("\tFull URL: %s\n", currentURL->fullURL);
-        printf("\tFirst Component: %s\n", currentURL->allButFirstComponent);
-        printf("\tHostname: %s\n", currentURL->hostname);
-        printf("\tPath: %s\n", currentURL->path);
-        printf("\tFILE NAME: %s\n", currentURL->htmlFile);
+        //printf("\tFull URL: %s\n", currentURL->fullURL);
+        //printf("\tFirst Component: %s\n", currentURL->allButFirstComponent);
+        //printf("\tHostname: %s\n", currentURL->hostname);
+        //printf("\tPath: %s\n", currentURL->path);
+        //printf("\tFILE NAME: %s\n", currentURL->htmlFile);
 
         ////
 
@@ -164,7 +164,7 @@ int main(int argc,char *argv[]) {
         }
 
         ////Remove Later
-        printf("GET REQUEST: %s\n",sendBuff);
+        //printf("GET REQUEST: %s\n",sendBuff);
         ////Remove Later
 
         if(send(socketFD, sendBuff, strlen(sendBuff), 0) < 0) {
@@ -183,13 +183,24 @@ int main(int argc,char *argv[]) {
 
         //Receive the response from the server
         while (contentLength != total && (numberOfBytesRead = recv(socketFD, recvBuff, sizeof(recvBuff),0)) > 0) {
-            printf("%s\n",recvBuff);
 
 
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
-                printf("IT MADE IT HERE\n");
+
+                //Find the Status Code
+                if ((pageStatusCode = strcasestr(recvBuff, STATUS_CODE)) == NULL){
+                    break;
+                }
+                pageStatusCode += strlen(STATUS_CODE);
+
+                while(pageStatusCode[0] == ' '){
+                    pageStatusCode++;
+                }
+
+                sci = (int) (pageStatusCode - recvBuff);
+                statusCode = (int) strtol(&(recvBuff[sci]),NULL,10);
 
                 //Find the Content Type Header
                 if ((contentTypeHeader = strcasestr(recvBuff, CONTENT_TYPE)) == NULL){
@@ -206,50 +217,34 @@ int main(int argc,char *argv[]) {
                 memcpy(contentType, &recvBuff[scti], cti-scti);
                 contentType[cti-scti] = NULL_BYTE_CHARACTER;
 
-                if((strcasestr(contentType,VALID_MIME_TYPE) == NULL)){
-                    break;
+                if(statusCode != 301) {
+                    if ((strcasestr(contentType, VALID_MIME_TYPE) == NULL)) {
+                        break;
+                    }
                 }
 
-                printf("IT MADE IT HERE1\n");
 
 
                 //Find the Content Length Header
                 if ((contentLengthHeader = strcasestr(recvBuff, CONTENT_LENGTH)) == NULL){
                     break;
                 }
-                printf("IT MADE IT HERE1.1\n");
 
                 contentLengthHeader += strlen(CONTENT_LENGTH);
-                printf("IT MADE IT HERE1.2\n");
 
 
                 while(contentLengthHeader[0] == ' '){
                     contentLengthHeader++;
                 }
-                printf("IT MADE IT HERE1.3\n");
 
                 cli = (int) (contentLengthHeader - recvBuff);
-                printf("IT MADE IT HERE1.4\n");
 
                 contentLength = (int) strtol(&(recvBuff[cli]),NULL,10);
 
-                printf("IT MADE IT HERE2\n");
-
-                //Find the Status Code
-                if ((pageStatusCode = strcasestr(recvBuff, STATUS_CODE)) == NULL){
-                    break;
-                }
-                pageStatusCode += strlen(STATUS_CODE);
-
-                while(pageStatusCode[0] == ' '){
-                    pageStatusCode++;
-                }
-
-                sci = (int) (pageStatusCode - recvBuff);
-                statusCode = (int) strtol(&(recvBuff[sci]),NULL,10);
 
 
-                printf("IT MADE IT HERE3\n");
+
+
 
                 if(statusCode == 200){
                     //Success, All is good
@@ -271,44 +266,34 @@ int main(int argc,char *argv[]) {
 
                } else if (statusCode == 301){
 
-                    printf("HELP301.1\n");
 
                    //The web page has been redirected, thus get the URL for the redirection and add it to the queue
                    if ((locationHeader = strcasestr(recvBuff, LOCATION_HEADER)) == NULL){
                        break;
                    }
-                    printf("HELP302.1\n");
 
                     locationHeader += strlen(LOCATION_HEADER);
                    while(locationHeader[0] == ' '){
                        locationHeader++;
                    }
-                    printf("HELP303.1\n");
 
 
                     endLocationHeader = locationHeader;
 
-                    printf("HELP304.1\n");
 
                     while(endLocationHeader[0] != '\r'){
                        endLocationHeader++;
                    }
 
-                    printf("HELP305.1\n");
 
                     lhi = (int) (locationHeader - recvBuff);
                     elhi = (int) (endLocationHeader - recvBuff);
 
-                    printf("HELP306.1\n");
 
 
                     memcpy(URLFor301, &recvBuff[lhi], elhi - lhi);
                    URLFor301[elhi - lhi] = NULL_BYTE_CHARACTER;
-                    printf("HELP307.1\n");
 
-                    printf("URL301: %s\n",URLFor301);
-
-                    printf("HELP307.1\n");
                     enqueueURL(URLFor301);
                    parseURL(currentURL);
 
@@ -354,7 +339,6 @@ int main(int argc,char *argv[]) {
             parseHTML(fullBuffer, currentURL);
         }
 
-        printf("%s\n",fullBuffer);
 
         error:
 
