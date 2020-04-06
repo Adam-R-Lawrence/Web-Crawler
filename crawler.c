@@ -187,8 +187,6 @@ int main(int argc,char *argv[]) {
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
-                printf("####%s####\n",recvBuff);
-
                 //Find the Content Type Header
                 if ((contentTypeHeader = strcasestr(recvBuff, CONTENT_TYPE)) == NULL){
                     break;
@@ -255,31 +253,45 @@ int main(int argc,char *argv[]) {
 
                } else if (statusCode == 301){
 
+                    printf("HELP301.1\n");
+
                    //The web page has been redirected, thus get the URL for the redirection and add it to the queue
                    if ((locationHeader = strcasestr(recvBuff, LOCATION_HEADER)) == NULL){
                        break;
                    }
+                    printf("HELP302.1\n");
 
-                   locationHeader += strlen(LOCATION_HEADER);
+                    locationHeader += strlen(LOCATION_HEADER);
                    while(locationHeader[0] == ' '){
                        locationHeader++;
                    }
+                    printf("HELP303.1\n");
 
-                   endLocationHeader = locationHeader;
 
-                   while(endLocationHeader[0] != '\r'){
+                    endLocationHeader = locationHeader;
+
+                    printf("HELP304.1\n");
+
+                    while(endLocationHeader[0] != '\r'){
                        endLocationHeader++;
                    }
+
+                    printf("HELP305.1\n");
 
                     lhi = (int) (locationHeader - recvBuff);
                     elhi = (int) (endLocationHeader - recvBuff);
 
+                    printf("HELP306.1\n");
 
-                   memcpy(URLFor301, &recvBuff[lhi], elhi - lhi);
+
+                    memcpy(URLFor301, &recvBuff[lhi], elhi - lhi);
                    URLFor301[elhi - lhi] = NULL_BYTE_CHARACTER;
-                   printf("URL301: %s\n",URLFor301);
+                    printf("HELP307.1\n");
 
-                   enqueueURL(URLFor301);
+                    printf("URL301: %s\n",URLFor301);
+
+                    printf("HELP307.1\n");
+                    enqueueURL(URLFor301);
                    parseURL(currentURL);
 
                } else if (statusCode == 404 ||statusCode == 410 ||statusCode == 414 ||statusCode == 504){
