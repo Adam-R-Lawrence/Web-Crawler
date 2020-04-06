@@ -183,6 +183,8 @@ int main(int argc,char *argv[]) {
 
         //Receive the response from the server
         while (contentLength != total && (numberOfBytesRead = recv(socketFD, recvBuff, sizeof(recvBuff),0)) > 0) {
+            printf("%s\n",recvBuff);
+
 
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
@@ -232,7 +234,6 @@ int main(int argc,char *argv[]) {
                 sci = (int) (pageStatusCode - recvBuff);
                 statusCode = (int) strtol(&(recvBuff[sci]),NULL,10);
 
-                printf("%s\n",recvBuff);
                 printf("STATUS CODE: %d\n",statusCode);
 
                 if(statusCode == 200){
