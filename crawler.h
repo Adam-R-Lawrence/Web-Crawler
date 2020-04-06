@@ -21,23 +21,23 @@
 #define CONTENT_LENGTH "Content-Length:"
 #define CONTENT_TYPE "Content-Type:"
 #define LOCATION_HEADER "Location:"
-#define STATUS_CODE "HTTP/1.1"
+#define STATUS_CODE "HTTP/1.1 "
 #define VALID_MIME_TYPE "text/html"
 #define NULL_BYTE_CHARACTER '\0'
 #define NULL_BYTE 1
 #define SEND_BUFFER_LENGTH 2100
 #define RECEIVED_BUFFER_LENGTH 3000
 #define NO_SOCKET_OPENED 0
-#define REFETCH_LIMIT 10
+#define REFETCH_LIMIT 5
 
 /* Define Enumerations */
-enum boolean {FALSE, TRUE};
+enum boolean { FALSE, TRUE };
 
 /* Struct Typedefs */
 typedef struct uniqueURL {
     char URLhostname[MAX_URL_SIZE + NULL_BYTE];
     char URLpath[MAX_URL_SIZE + NULL_BYTE];
-    struct uniqueURL *nextUniqueURL;
+    struct uniqueURL* nextUniqueURL;
 } uniqueURL;
 
 typedef struct URLInfo {
@@ -47,16 +47,16 @@ typedef struct URLInfo {
     char path[MAX_URL_SIZE + NULL_BYTE];
     int needAuthorization;
     int refetchTimes;
-    struct URLInfo *nextNode;
+    struct URLInfo* nextNode;
 } URLInfo;
 
 /* Function Prototypes */
-void parseHTML(char buffer[], URLInfo *currentURL);
+void parseHTML(char buffer[], URLInfo* currentURL);
 int checkIfValidURL(char possibleURL[]);
-void enqueueURL(char *URL);
-void dequeueURL(URLInfo *toFetchURL);
-void parseURL(URLInfo * currentURL);
-int checkHistory(URLInfo * URLtoCheck);
+void enqueueURL(char* URL);
+void dequeueURL(URLInfo* toFetchURL);
+void parseURL(URLInfo* currentURL);
+int checkHistory(URLInfo* URLtoCheck);
 void clearHistory();
 
 #endif //CODE_CRAWLER_H
