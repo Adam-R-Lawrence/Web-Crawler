@@ -21,14 +21,14 @@
 #define CONTENT_LENGTH "Content-Length:"
 #define CONTENT_TYPE "Content-Type:"
 #define LOCATION_HEADER "Location:"
-#define STATUS_CODE "HTTP/1.1 "
+#define STATUS_CODE "HTTP/1.1"
 #define VALID_MIME_TYPE "text/html"
 #define NULL_BYTE_CHARACTER '\0'
 #define NULL_BYTE 1
 #define SEND_BUFFER_LENGTH 2100
 #define RECEIVED_BUFFER_LENGTH 3000
 #define NO_SOCKET_OPENED 0
-#define REFETCH_LIMIT 5
+#define REFETCH_LIMIT 10
 
 /* Define Enumerations */
 enum boolean {FALSE, TRUE};

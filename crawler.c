@@ -166,8 +166,10 @@ int main(int argc,char *argv[]) {
         }
 
 
-        //Add to total of Web pages that were attempted to be fetched
-        numberOfPagesFetched++;
+        //Add to total of unique Web pages that were attempted to be fetched
+        if(currentURL->refetchTimes == 0) {
+            numberOfPagesFetched++;
+        }
 
         char * fullBuffer = strdup("");
 
@@ -177,68 +179,75 @@ int main(int argc,char *argv[]) {
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
-                //Content Type
-                contentTypeHeader = strcasestr(recvBuff, CONTENT_TYPE);
-                //printf("content Type: %s\n",contentLengthHeader);
-
-                if (contentTypeHeader == NULL){
-                    //fprintf(stderr, "No Content Length Header\n");
+                //Find the Content Type Header
+                if ((contentTypeHeader = strcasestr(recvBuff, CONTENT_TYPE)) == NULL){
                     break;
                 }
-                scti = (contentTypeHeader ? contentTypeHeader - recvBuff : -1);
+
+                scti = (int)( contentTypeHeader - recvBuff);
+
                 while(contentTypeHeader[0] != '\n'){
                     contentTypeHeader++;
                 }
+                cti = (int) (contentTypeHeader - recvBuff);
 
-                cti = (contentTypeHeader ? contentTypeHeader - recvBuff : -1);
                 memcpy(contentType, &recvBuff[scti], cti-scti);
                 contentType[cti-scti] = NULL_BYTE_CHARACTER;
 
-
-
                 if((strcasestr(contentType,VALID_MIME_TYPE) == NULL)){
-                    ///printf("\nNot VALID MIME TYPE\n");
                     break;
                 }
 
 
-                //Content Length
-                contentLengthHeader = strcasestr(recvBuff, CONTENT_LENGTH);
-                if (contentLengthHeader == NULL){
-                    ///printf("\nNo Content Length Header\n");
+                //Find the Content Length Header
+                if ((contentLengthHeader = strcasestr(recvBuff, CONTENT_LENGTH)) == NULL){
                     break;
                 }
                 contentLengthHeader += strlen(CONTENT_LENGTH);
+
                 while(contentLengthHeader[0] == ' '){
                     contentLengthHeader++;
                 }
-                cli = (contentLengthHeader ? contentLengthHeader - recvBuff : -1);
+                cli = (int) (contentLengthHeader - recvBuff);
                 contentLength = atoi(&(recvBuff[cli]));
 
 
-                //Status Code
-                pageStatusCode = strcasestr(recvBuff, STATUS_CODE) + strlen(STATUS_CODE);
-                sci = (pageStatusCode ? pageStatusCode - recvBuff : -1);
+                //Find the Status Code
+                if ((pageStatusCode = strcasestr(recvBuff, STATUS_CODE)) == NULL){
+                    break;
+                }
+                pageStatusCode += strlen(STATUS_CODE);
+
+                while(pageStatusCode[0] == ' '){
+                    pageStatusCode++;
+                }
+
+                sci = (int) (pageStatusCode - recvBuff);
                 statusCode = atoi(&(recvBuff[sci]));
+
 
                 if(statusCode == 200){
                     //Success, All is good
                } else if(statusCode == 503){
-                   enqueueURL(currentURL->fullURL);
+
+                    //The page at the current URL is currently unavailable, thus we must refetch it
+                    enqueueURL(currentURL->fullURL);
                    parseURL(currentURL);
 
                    pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
 
                } else if(statusCode == 401){
+
+                   //The current URL needs to be refetched again, but with authorization so we may access it.
                    enqueueURL(currentURL->fullURL);
                    parseURL(currentURL);
                    pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
                    pointerTopURL->needAuthorization = TRUE;
+
                } else if (statusCode == 301){
 
-
-                   locationHeader = strcasestr(recvBuff, LOCATION_HEADER);
-                   if (locationHeader == NULL){
+                   //The web page has been redirected, thus get the URL for the redirection and add it to the queue
+                   if ((locationHeader = strcasestr(recvBuff, LOCATION_HEADER)) == NULL){
                        break;
                    }
 
@@ -247,16 +256,15 @@ int main(int argc,char *argv[]) {
                        locationHeader++;
                    }
 
-
                    endLocationHeader = locationHeader;
 
                    while(endLocationHeader[0] != '\r'){
                        endLocationHeader++;
                    }
 
-                   elhi = (endLocationHeader ? endLocationHeader - recvBuff : -1);
+                    lhi = (int) (locationHeader - recvBuff);
+                    elhi = (int) (endLocationHeader - recvBuff);
 
-                   lhi = (locationHeader ? locationHeader - recvBuff : -1);
 
                    memcpy(URLFor301, &recvBuff[lhi], elhi - lhi);
                    URLFor301[elhi - lhi] = NULL_BYTE_CHARACTER;
@@ -264,7 +272,6 @@ int main(int argc,char *argv[]) {
 
                    enqueueURL(URLFor301);
                    parseURL(currentURL);
-                   //goto error;
 
                } else if (statusCode == 404 ||statusCode == 410 ||statusCode == 414 ||statusCode == 504){
 
@@ -272,18 +279,16 @@ int main(int argc,char *argv[]) {
                    goto error;
                }
 
-               // printf("HELP2\n");
 
                 //Check to see if the end of the header is fully received
                 if (endOfHeaderPointer != NULL) {
 
                     isHeader = FALSE;
-                    index = (endOfHeaderPointer ? endOfHeaderPointer - recvBuff : -1) + 4;
+                    index = (int) (endOfHeaderPointer - recvBuff) + 4;
 
                     total += numberOfBytesRead - index;
 
                     endOfHeaderPointer = &(endOfHeaderPointer[4]);
-                    //printf("LENGTH: %lu TOTAL: %d\n",strlen(endOfHeaderPointer),total);
 
                     fullBuffer = realloc(fullBuffer, total + 10);
                     strcat(fullBuffer,endOfHeaderPointer);
@@ -307,7 +312,6 @@ int main(int argc,char *argv[]) {
 
         if(total == contentLength) {
             parseHTML(fullBuffer, currentURL);
-
         }
 
         error:
@@ -329,7 +333,9 @@ int main(int argc,char *argv[]) {
     return 0;
 }
 
-//Function to parse the HTML and find URLs
+/*
+ *  Function to parse the HTML and extract URLs
+ */
 void parseHTML(char buffer[], URLInfo * currentURL)
 {
     int si, ei, URLLength;
@@ -435,18 +441,21 @@ void parseHTML(char buffer[], URLInfo * currentURL)
 
         free(anchor);
         buffer = endAnchor;
-        //printf("%s",buffer);
     }
 
 }
 
-//Function to check if a URL is valid
+/*
+ * Function to check if a URL is valid for this crawler
+ */
 int checkIfValidURL(char possibleURL[]) {
 
-    if (strstr(possibleURL, "https://") != NULL) {
+    ////Remove this
+    //A valid URL only uses the http protocol
+    if (strcasestr(possibleURL, "https://") != NULL) {
         return IS_NOT_VALID_URL;
     }
-
+    ////Remove this
 
     //A valid URL cannot be over 1000 bytes long
     if (strlen(possibleURL) > MAX_URL_SIZE) {
@@ -478,6 +487,7 @@ int checkIfValidURL(char possibleURL[]) {
         return IS_NOT_VALID_URL;
     }
 
+    //A valid URL can not be empty
     if (strcmp(possibleURL, "") == 0) {
         return IS_NOT_VALID_URL;
     }
@@ -485,8 +495,9 @@ int checkIfValidURL(char possibleURL[]) {
     return IS_VALID_URL;
 }
 
+
 /*
- *  A function breaks up a URL into its constituents
+ *  A function which breaks up a URL into its constituents
  */
 void parseURL(URLInfo * currentURL) {
 
@@ -583,6 +594,9 @@ void parseURL(URLInfo * currentURL) {
 
 }
 
+/*
+ *  Enqueue an URL to the queue
+ */
 void enqueueURL(char *URL){
     URLInfo *TempPointer = malloc(sizeof(URLInfo));
 
@@ -603,21 +617,26 @@ void enqueueURL(char *URL){
     }
     pointerTopURL = TempPointer;
 
+    //Initialise default values
     pointerTopURL->refetchTimes = 0;
     pointerTopURL->needAuthorization = FALSE;
 }
 
+/*
+ *  Dequeue an URL from the queue
+ */
 void dequeueURL(URLInfo *toFetchURL){
+
     if(pointerBottomURL == NULL){
         return;
     }
+
     strcpy(toFetchURL->fullURL, pointerBottomURL->fullURL);
     strcpy(toFetchURL->hostname, pointerBottomURL->hostname);
     strcpy(toFetchURL->allButFirstComponent, pointerBottomURL->allButFirstComponent);
     strcpy(toFetchURL->path, pointerBottomURL->path);
     toFetchURL->refetchTimes = pointerBottomURL->refetchTimes;
     toFetchURL->needAuthorization = pointerBottomURL->needAuthorization;
-
 
 
     URLInfo *TempPointer = pointerBottomURL;
@@ -630,6 +649,10 @@ void dequeueURL(URLInfo *toFetchURL){
 
 }
 
+
+/*
+ *  Function to check all the unique URLs that have been visited already
+ */
 int checkHistory(URLInfo * URLtoCheck){
     uniqueURL * tempPointer = pointerToHistory;
     uniqueURL * newUniqueURL;
@@ -643,6 +666,7 @@ int checkHistory(URLInfo * URLtoCheck){
         tempPointer = tempPointer->nextUniqueURL;
     }
 
+    //If this URL was not in the existing history, add it to the history
     newUniqueURL = malloc(sizeof(uniqueURL));
     newUniqueURL->nextUniqueURL = pointerToHistory;
     strcpy(newUniqueURL->URLhostname, URLtoCheck->hostname);
@@ -650,9 +674,13 @@ int checkHistory(URLInfo * URLtoCheck){
 
     pointerToHistory = newUniqueURL;
 
+    //If it was not in the history, the URL is unique, thus valid for fetching
     return IS_VALID_URL;
 }
 
+/*
+ *  Free the History Linked List
+ */
 void clearHistory() {
     uniqueURL * tempPointer;
 
