@@ -232,6 +232,8 @@ int main(int argc,char *argv[]) {
                 sci = (int) (pageStatusCode - recvBuff);
                 statusCode = (int) strtol(&(recvBuff[sci]),NULL,10);
 
+                printf("%s\n",recvBuff);
+                printf("STATUS CODE: %d\n",statusCode);
 
                 if(statusCode == 200){
                     //Success, All is good
