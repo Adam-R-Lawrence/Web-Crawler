@@ -189,6 +189,8 @@ int main(int argc,char *argv[]) {
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
+                printf("IT MADE IT HERE\n");
+
                 //Find the Content Type Header
                 if ((contentTypeHeader = strcasestr(recvBuff, CONTENT_TYPE)) == NULL){
                     break;
@@ -208,6 +210,8 @@ int main(int argc,char *argv[]) {
                     break;
                 }
 
+                printf("IT MADE IT HERE1\n");
+
 
                 //Find the Content Length Header
                 if ((contentLengthHeader = strcasestr(recvBuff, CONTENT_LENGTH)) == NULL){
@@ -220,6 +224,8 @@ int main(int argc,char *argv[]) {
                 }
                 cli = (int) (contentLengthHeader - recvBuff);
                 contentLength = (int) strtol(&(recvBuff[cli]),NULL,10);
+
+                printf("IT MADE IT HERE2\n");
 
                 //Find the Status Code
                 if ((pageStatusCode = strcasestr(recvBuff, STATUS_CODE)) == NULL){
@@ -234,7 +240,8 @@ int main(int argc,char *argv[]) {
                 sci = (int) (pageStatusCode - recvBuff);
                 statusCode = (int) strtol(&(recvBuff[sci]),NULL,10);
 
-                printf("STATUS CODE: %d\n",statusCode);
+
+                printf("IT MADE IT HERE3\n");
 
                 if(statusCode == 200){
                     //Success, All is good
