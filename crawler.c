@@ -61,6 +61,8 @@ int main(int argc,char *argv[]) {
     char *endOfHeaderPointer;
     int index;
 
+    int totalURLs = 0;
+
     //Content Length Header
     char *contentLengthHeader;
     int contentLength, cli;
@@ -85,7 +87,7 @@ int main(int argc,char *argv[]) {
     int numberOfPagesFetched = 0;
     URLInfo * currentURL;
 
-    while(numberOfPagesFetched <= MAX_NUMBER_OF_PAGES_FETCHED && pointerBottomURL != NULL) {
+    while(numberOfPagesFetched != MAX_NUMBER_OF_PAGES_FETCHED && pointerBottomURL != NULL) {
         total = 0;
         contentLength = -2;
         int isHeader = TRUE;
@@ -320,7 +322,10 @@ int main(int argc,char *argv[]) {
             parseHTML(fullBuffer, currentURL);
         }
 
+        printf("%s\n",fullBuffer);
+
         error:
+
 
         //Print the URL just parsed to the stdout
         printf("http://%s%s\n",currentURL->hostname,currentURL->path);
@@ -336,6 +341,10 @@ int main(int argc,char *argv[]) {
 
     //Clear the History
     clearHistory();
+
+    ////REMOVE LATER////
+    printf("NUMBER OF PAGES %d\n",numberOfPagesFetched);
+    ////////////////////
 
     return 0;
 }
@@ -505,7 +514,6 @@ int checkIfValidURL(char possibleURL[]) {
 void parseURL(URLInfo * currentURL) {
 
     char * pointerURL = &(pointerTopURL->fullURL[0]);
-    char * pathURL = &(pointerTopURL->path[0]);
 
 
     char * firstDot;
@@ -517,7 +525,7 @@ void parseURL(URLInfo * currentURL) {
     char * endURL;
     int eURLi;
 
-    char * lastSlash = pointerTopURL->fullURL;
+    char * lastSlash;
     char * temp;
 
     //Get the html file name
@@ -584,7 +592,7 @@ void parseURL(URLInfo * currentURL) {
 
 
         firstSlash = strchr(pointerURL, '\0');
-        fsi = (firstSlash ? firstSlash - pointerURL : -1);
+        fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
         memcpy(pointerTopURL->path, &pointerURL[0], fsi);
         pointerTopURL->path[fsi] = NULL_BYTE_CHARACTER;
 
@@ -599,7 +607,7 @@ void parseURL(URLInfo * currentURL) {
     //Find the end of the hostname
     if ((firstSlash = strchr(pointerURL, '/'))!= NULL) {
 
-        fsi = (firstSlash ? firstSlash - pointerURL : -1);
+        fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
 
 
         memcpy(pointerTopURL->hostname, &pointerURL[0], fsi);
@@ -609,7 +617,7 @@ void parseURL(URLInfo * currentURL) {
         pointerURL = &(pointerURL[fsi]);
 
         endURL = strchr(pointerURL, '\0');
-        eURLi = (endURL ? endURL - pointerURL : -1);
+        eURLi = (int) (endURL ? endURL - pointerURL : -1);
         memcpy(pointerTopURL->path, &pointerURL[0], eURLi);
         pointerTopURL->path[eURLi] = NULL_BYTE_CHARACTER;
 
@@ -620,7 +628,7 @@ void parseURL(URLInfo * currentURL) {
         //If above == NUll that means there is no path
     {
         firstSlash = strchr(pointerURL, '\0');
-        fsi = (firstSlash ? firstSlash - pointerURL : -1);
+        fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
         memcpy(pointerTopURL->hostname, &pointerURL[0], fsi);
         pointerTopURL->hostname[fsi] = NULL_BYTE_CHARACTER;
 
@@ -631,7 +639,7 @@ void parseURL(URLInfo * currentURL) {
 
     if((firstDot = strchr(pointerTopURL->hostname, '.')) != NULL) {
         firstDot = &(firstDot[1]);
-        fdi = (firstDot ? firstDot - pointerTopURL->hostname : -1);
+        fdi = (int) (firstDot ? firstDot - pointerTopURL->hostname : -1);
 
         memcpy(pointerTopURL->allButFirstComponent, firstDot, strlen(pointerTopURL->hostname) - fdi);
         pointerTopURL->allButFirstComponent[strlen(pointerTopURL->hostname) - fdi] = NULL_BYTE_CHARACTER;
