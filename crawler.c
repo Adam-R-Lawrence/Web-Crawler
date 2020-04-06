@@ -519,7 +519,10 @@ void parseURL(URLInfo * currentURL) {
     char * temp;
 
     //Get the html file name
-    if(strcasestr(pointerTopURL->fullURL,".html") != NULL){
+    if((strcasestr(pointerTopURL->fullURL,".html") != NULL) && (strchr(pointerTopURL->fullURL,'/') == NULL)){
+
+
+        lastSlash = currentURL->path;
         while((temp = strchr(lastSlash,'/')) != NULL){
             ++temp;
             lastSlash = temp;
@@ -527,20 +530,22 @@ void parseURL(URLInfo * currentURL) {
 
 
 
-        //fsi = (int) (lastSlash ? lastSlash - pointerTopURL->fullURL : -1);
-        if((int)(lastSlash - pointerTopURL->fullURL) != 0){
-        memcpy(pointerTopURL->htmlFile, &lastSlash[0], (int)(lastSlash - pointerTopURL->fullURL));
-        pointerTopURL->htmlFile[lastSlash-pointerTopURL->fullURL] = NULL_BYTE_CHARACTER;
-        } else {
-            strcpy(pointerTopURL->htmlFile,pointerTopURL->fullURL);
-        }
 
+        fsi = (int) (lastSlash ? lastSlash - pointerTopURL->path : -1) -1;
 
-        printf("FULL URL: %s\n", pointerTopURL->fullURL);
-        printf("HTML FILE: %s\n", pointerTopURL->htmlFile);
+        memcpy(pointerTopURL->path, currentURL->path, fsi);
+        pointerTopURL->htmlFile[fsi] = NULL_BYTE_CHARACTER;
+        strcat(pointerTopURL->path, pointerTopURL->fullURL);
 
+        strcpy(pointerTopURL->hostname,currentURL->hostname);
+        strcpy(pointerTopURL->allButFirstComponent, currentURL->allButFirstComponent);
 
+        printf("Hello\n");
+
+        return;
     }
+
+    lastSlash = pointerTopURL->fullURL;
 
     //Check if URL is Absolute (Fully Specified)
     if(strcasestr(pointerTopURL->fullURL,"http://") != NULL) {
