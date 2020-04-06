@@ -7,7 +7,6 @@
 
 #define _GNU_SOURCE
 #include <stdio.h>
-#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
@@ -57,7 +56,6 @@ int main(int argc,char *argv[]) {
     char recvBuff[RECEIVED_BUFFER_LENGTH] = {0};
     struct hostent *server;
 
-
     int numberOfBytesRead;
     int total;
     char *endOfHeaderPointer;
@@ -101,7 +99,8 @@ int main(int argc,char *argv[]) {
         printf("\tFirst Component: %s\n", currentURL->allButFirstComponent);
         printf("\tHostname: %s\n", currentURL->hostname);
         printf("\tPath: %s\n", currentURL->path);
-        printf("\tTimes Refetched: %d\n", currentURL->refetchTimes);
+        printf("\tFILE NAME: %s\n", currentURL->htmlFile);
+
         ////
 
 
@@ -216,8 +215,7 @@ int main(int argc,char *argv[]) {
                     contentLengthHeader++;
                 }
                 cli = (int) (contentLengthHeader - recvBuff);
-                contentLength = atoi(&(recvBuff[cli]));
-
+                contentLength = (int) strtol(&(recvBuff[cli]),NULL,10);
 
                 //Find the Status Code
                 if ((pageStatusCode = strcasestr(recvBuff, STATUS_CODE)) == NULL){
@@ -230,7 +228,7 @@ int main(int argc,char *argv[]) {
                 }
 
                 sci = (int) (pageStatusCode - recvBuff);
-                statusCode = atoi(&(recvBuff[sci]));
+                statusCode = (int) strtol(&(recvBuff[sci]),NULL,10);
 
 
                 if(statusCode == 200){
@@ -311,7 +309,8 @@ int main(int argc,char *argv[]) {
             strcat(fullBuffer,recvBuff);
             memset(recvBuff, 0, strlen(recvBuff));
 
-            if(total == contentLength){
+            //If the total bytes received
+            if(total >= contentLength){
                 close(socketFD);
             }
 
@@ -337,6 +336,7 @@ int main(int argc,char *argv[]) {
 
     //Clear the History
     clearHistory();
+
     return 0;
 }
 
@@ -515,6 +515,33 @@ void parseURL(URLInfo * currentURL) {
     char * endURL;
     int eURLi;
 
+    char * lastSlash = pointerTopURL->fullURL;
+    char * temp;
+
+    //Get the html file name
+    if(strcasestr(pointerTopURL->fullURL,".html") != NULL){
+        while((temp = strchr(lastSlash,'/')) != NULL){
+            ++temp;
+            lastSlash = temp;
+        }
+
+
+
+        //fsi = (int) (lastSlash ? lastSlash - pointerTopURL->fullURL : -1);
+        if((int)(lastSlash - pointerTopURL->fullURL) != 0){
+        memcpy(pointerTopURL->htmlFile, &lastSlash[0], (int)(lastSlash - pointerTopURL->fullURL));
+        pointerTopURL->htmlFile[lastSlash-pointerTopURL->fullURL] = NULL_BYTE_CHARACTER;
+        } else {
+            strcpy(pointerTopURL->htmlFile,pointerTopURL->fullURL);
+        }
+
+
+        printf("FULL URL: %s\n", pointerTopURL->fullURL);
+        printf("HTML FILE: %s\n", pointerTopURL->htmlFile);
+
+
+    }
+
     //Check if URL is Absolute (Fully Specified)
     if(strcasestr(pointerTopURL->fullURL,"http://") != NULL) {
         //If so move pointer to the character after the last /
@@ -538,23 +565,26 @@ void parseURL(URLInfo * currentURL) {
         pointerURL = &(pointerTopURL->fullURL[1]);
 
 
+
         firstSlash = strchr(pointerURL, '\0');
-        fsi = (firstSlash ? firstSlash - pointerURL : -1);
-        memcpy(pointerTopURL->path, &pointerURL[0], fsi);
-        pointerTopURL->path[fsi] = NULL_BYTE_CHARACTER;
+        fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
+
+
+        memcpy(pointerTopURL->path, &pointerURL[0], (pointerTopURL->fullURL - lastSlash));
+        pointerTopURL->path[pointerTopURL->fullURL - lastSlash] = NULL_BYTE_CHARACTER;
 
         return;
     }
 
 
-    //Pointer is now pointing to the beginning of the hostname
+    //Pointer is now pointing to the beginning of the hostname or the specific file
 
 
 
     //Find the end of the hostname
     if ((firstSlash = strchr(pointerURL, '/'))!= NULL) {
 
-        fsi = (firstSlash ? firstSlash - pointerURL : -1);
+        fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
 
 
         memcpy(pointerTopURL->hostname, &pointerURL[0], fsi);
@@ -564,7 +594,8 @@ void parseURL(URLInfo * currentURL) {
         pointerURL = &(pointerURL[fsi]);
 
         endURL = strchr(pointerURL, '\0');
-        eURLi = (endURL ? endURL - pointerURL : -1);
+        eURLi = (int) (endURL ? endURL - pointerURL : -1);
+
         memcpy(pointerTopURL->path, &pointerURL[0], eURLi);
         pointerTopURL->path[eURLi] = NULL_BYTE_CHARACTER;
 
@@ -575,7 +606,7 @@ void parseURL(URLInfo * currentURL) {
     //If above == NUll that means there is no path
     {
         firstSlash = strchr(pointerURL, '\0');
-        fsi = (firstSlash ? firstSlash - pointerURL : -1);
+        fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
         memcpy(pointerTopURL->hostname, &pointerURL[0], fsi);
         pointerTopURL->hostname[fsi] = NULL_BYTE_CHARACTER;
 
@@ -584,17 +615,22 @@ void parseURL(URLInfo * currentURL) {
     }
 
 
-    if((firstDot = strchr(pointerTopURL->hostname, '.')) != NULL) {
-        firstDot = &(firstDot[1]);
-        fdi = (firstDot ? firstDot - pointerTopURL->hostname : -1);
 
-        memcpy(pointerTopURL->allButFirstComponent, firstDot, strlen(pointerTopURL->hostname) - fdi);
-        pointerTopURL->allButFirstComponent[strlen(pointerTopURL->hostname) - fdi] = NULL_BYTE_CHARACTER;
-    } else{
-        strcpy(pointerTopURL->allButFirstComponent,pointerTopURL->hostname);
-        pointerTopURL->path[strlen(pointerTopURL->allButFirstComponent)] = NULL_BYTE_CHARACTER;
+
+
+    //Get all but the first component of
+    if(strcmp(pointerTopURL->fullURL,pointerTopURL->htmlFile) != 0) {
+        if ((firstDot = strchr(pointerTopURL->hostname, '.')) != NULL) {
+            firstDot = &(firstDot[1]);
+            fdi = (int) (firstDot ? firstDot - pointerTopURL->hostname : -1);
+
+            memcpy(pointerTopURL->allButFirstComponent, firstDot, strlen(pointerTopURL->hostname) - fdi);
+            pointerTopURL->allButFirstComponent[strlen(pointerTopURL->hostname) - fdi] = NULL_BYTE_CHARACTER;
+        } else {
+            strcpy(pointerTopURL->allButFirstComponent, pointerTopURL->hostname);
+            pointerTopURL->path[strlen(pointerTopURL->allButFirstComponent)] = NULL_BYTE_CHARACTER;
+        }
     }
-
 }
 
 /*
@@ -638,6 +674,7 @@ void dequeueURL(URLInfo *toFetchURL){
     strcpy(toFetchURL->hostname, pointerBottomURL->hostname);
     strcpy(toFetchURL->allButFirstComponent, pointerBottomURL->allButFirstComponent);
     strcpy(toFetchURL->path, pointerBottomURL->path);
+    strcpy(toFetchURL->htmlFile, pointerBottomURL->htmlFile);
     toFetchURL->refetchTimes = pointerBottomURL->refetchTimes;
     toFetchURL->needAuthorization = pointerBottomURL->needAuthorization;
 

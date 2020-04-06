@@ -1,6 +1,9 @@
-//
-// Created by arlawrence on 22/03/2020.
-//
+/*
+ *              crawler.h
+ * Computer Systems (COMP30023) - Project 1
+ * Adam Lawrence || arlawrence || 992684
+ * arlawrence@student.unimelb.edu.au
+ */
 
 #ifndef CODE_CRAWLER_H
 #define CODE_CRAWLER_H
@@ -47,6 +50,7 @@ typedef struct URLInfo {
     char hostname[MAX_URL_SIZE + NULL_BYTE];
     char allButFirstComponent[MAX_URL_SIZE + NULL_BYTE];
     char path[MAX_URL_SIZE + NULL_BYTE];
+    char htmlFile[MAX_URL_SIZE + NULL_BYTE];
     int needAuthorization;
     int refetchTimes;
     struct URLInfo *nextNode;
