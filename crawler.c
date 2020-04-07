@@ -15,12 +15,11 @@
 #include "crawler.h"
 #include <unistd.h>
 
-
+//Global Variables
 URLInfo *pointerBottomURL = NULL;
 URLInfo *pointerTopURL = NULL;
 uniqueURL * pointerToHistory = NULL;
-char givenFirstComponentOfHostname[MAX_URL_SIZE + NULL_BYTE];
-
+char commandLineAllButFirstComponent[MAX_URL_SIZE + NULL_BYTE];
 
 
 int main(int argc,char *argv[]) {
@@ -47,7 +46,7 @@ int main(int argc,char *argv[]) {
     }
 
     //Store all but the first component of the hostname for future comparisons
-    strcpy(givenFirstComponentOfHostname,pointerTopURL->allButFirstComponent);
+    strcpy(commandLineAllButFirstComponent, pointerTopURL->allButFirstComponent);
 
     //Variables for using the socket
     int socketFD;
@@ -81,7 +80,6 @@ int main(int argc,char *argv[]) {
     int cti,scti;
 
     int commandLineURLParsed = FALSE;
-
     int numberOfPagesFetched = 0;
     URLInfo * currentURL;
 
@@ -90,7 +88,7 @@ int main(int argc,char *argv[]) {
         contentLength = -2;
         int isHeader = TRUE;
 
-        //Get the URL to crawl
+        //Get the URL to attempt to crawl
         currentURL = malloc(sizeof(URLInfo));
         dequeueURL(currentURL);
 
@@ -99,12 +97,11 @@ int main(int argc,char *argv[]) {
         //printf("\tFirst Component: %s\n", currentURL->allButFirstComponent);
         //printf("\tHostname: %s\n", currentURL->hostname);
         //printf("\tPath: %s\n", currentURL->path);
-
         ////
 
 
         //Check if all but the first components of the current URL match with the command line URL
-        if((strcmp(currentURL->allButFirstComponent, givenFirstComponentOfHostname) != 0) && commandLineURLParsed == TRUE){
+        if((strcmp(currentURL->allButFirstComponent, commandLineAllButFirstComponent) != 0) && commandLineURLParsed == TRUE){
             free(currentURL);
             continue;
         }
@@ -160,9 +157,6 @@ int main(int argc,char *argv[]) {
             sprintf(sendBuff, HTTP_REQUEST_HEADER, currentURL->path, currentURL->hostname, USERNAME);
         }
 
-        ////Remove Later
-        //printf("GET REQUEST: %s\n",sendBuff);
-        ////Remove Later
 
         if(send(socketFD, sendBuff, strlen(sendBuff), 0) < 0) {
             fprintf(stderr,"Error with sending GET request\n");
@@ -171,9 +165,13 @@ int main(int argc,char *argv[]) {
         }
 
 
-        //Add to total of unique Web pages that were attempted to be fetched
         if(currentURL->refetchTimes == 0) {
+
+            //Add to total of unique Web pages that were attempted to be fetched
             numberOfPagesFetched++;
+
+            //Print the unique URL just parsed to the stdout
+            printf("http://%s%s\n",currentURL->hostname,currentURL->path);
         }
 
         char * fullBuffer = strdup("");
@@ -245,7 +243,7 @@ int main(int argc,char *argv[]) {
 
                 if(statusCode == 200){
                     //Success, All is good
-               } else if(statusCode == 503){
+               } else if(statusCode == 503 ||statusCode == 504){
 
                     //The page at the current URL is currently unavailable, thus we must refetch it
                     enqueueURL(currentURL->fullURL);
@@ -294,12 +292,12 @@ int main(int argc,char *argv[]) {
                     enqueueURL(URLFor301);
                    parseURL(currentURL);
 
-               } else if (statusCode == 404 ||statusCode == 410 ||statusCode == 414 ||statusCode == 504){
+               } else if (statusCode == 404 ||statusCode == 410 ||statusCode == 414){
 
                } else{
+                   //Ignore all other status codes, so don't crawl the web page
                    goto error;
                }
-
 
                 //Check to see if the end of the header is fully received
                 if (endOfHeaderPointer != NULL) {
@@ -340,8 +338,7 @@ int main(int argc,char *argv[]) {
         error:
 
 
-        //Print the URL just parsed to the stdout
-        printf("http://%s%s\n",currentURL->hostname,currentURL->path);
+
 
 
         //Free buffers and close down the connection
@@ -356,7 +353,7 @@ int main(int argc,char *argv[]) {
     clearHistory();
 
     ////REMOVE LATER////
-    printf("NUMBER OF PAGES %d\n",numberOfPagesFetched);
+    //printf("NUMBER OF PAGES %d\n",numberOfPagesFetched);
     ////////////////////
 
     return 0;
