@@ -52,7 +52,7 @@ int main(int argc,char *argv[]) {
     //Variables for using the socket
     int socketFD;
     char sendBuff[SEND_BUFFER_LENGTH + NULL_BYTE] = {0};
-    struct sockaddr_in serv_addr;
+    struct sockaddr_in server_address;
     char recvBuff[RECEIVED_BUFFER_LENGTH] = {0};
     struct hostent *server;
 
@@ -60,8 +60,6 @@ int main(int argc,char *argv[]) {
     int total;
     char *endOfHeaderPointer;
     int index;
-
-    int totalURLs = 0;
 
     //Content Length Header
     char *contentLengthHeader;
@@ -101,7 +99,6 @@ int main(int argc,char *argv[]) {
         //printf("\tFirst Component: %s\n", currentURL->allButFirstComponent);
         //printf("\tHostname: %s\n", currentURL->hostname);
         //printf("\tPath: %s\n", currentURL->path);
-        //printf("\tFILE NAME: %s\n", currentURL->htmlFile);
 
         ////
 
@@ -140,17 +137,17 @@ int main(int argc,char *argv[]) {
         }
 
         //initialise server address
-        memset(&serv_addr, 0, sizeof(serv_addr));
+        memset(&server_address, 0, sizeof(server_address));
 
         //initialise send buffer
         memset(sendBuff, '0', sizeof(sendBuff));
 
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_port = htons(PORT);
-        memcpy(&serv_addr.sin_addr.s_addr,server->h_addr,server->h_length);
+        server_address.sin_family = AF_INET;
+        server_address.sin_port = htons(PORT);
+        memcpy(&server_address.sin_addr.s_addr, server->h_addr, server->h_length);
 
         //Connect to the desired Server
-        if(connect(socketFD, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        if(connect(socketFD, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
             fprintf(stderr,"Error with connecting\n");
             free(currentURL);
             continue;
@@ -547,18 +544,15 @@ void parseURL(URLInfo * currentURL) {
     //Get the html file name
     if((strcasestr(pointerTopURL->fullURL,".html") != NULL) && (strchr(pointerTopURL->fullURL,'/') == NULL)){
 
-        printf("HELLO: %s\n",pointerTopURL->fullURL);
 
 
         lastSlash = currentURL->path;
-        printf("HELLO2: %s\n",lastSlash);
 
         while((temp = strchr(lastSlash,'/')) != NULL){
             ++temp;
             lastSlash = temp;
         }
 
-        printf("HELLO2: %s\n",lastSlash);
 
 
 
@@ -567,11 +561,9 @@ void parseURL(URLInfo * currentURL) {
 
 
         memcpy(pointerTopURL->path, currentURL->path, fsi);
-        pointerTopURL->htmlFile[fsi] = NULL_BYTE_CHARACTER;
 
 
         strcat(pointerTopURL->path, pointerTopURL->fullURL);
-        printf("YAY? %s\n",pointerTopURL->path);
 
 
 
@@ -706,7 +698,6 @@ void dequeueURL(URLInfo *toFetchURL){
     strcpy(toFetchURL->hostname, pointerBottomURL->hostname);
     strcpy(toFetchURL->allButFirstComponent, pointerBottomURL->allButFirstComponent);
     strcpy(toFetchURL->path, pointerBottomURL->path);
-    strcpy(toFetchURL->htmlFile, pointerBottomURL->htmlFile);
     toFetchURL->refetchTimes = pointerBottomURL->refetchTimes;
     toFetchURL->needAuthorization = pointerBottomURL->needAuthorization;
 

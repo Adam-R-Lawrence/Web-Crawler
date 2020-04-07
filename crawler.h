@@ -50,7 +50,6 @@ typedef struct URLInfo {
     char hostname[MAX_URL_SIZE + NULL_BYTE];
     char allButFirstComponent[MAX_URL_SIZE + NULL_BYTE];
     char path[MAX_URL_SIZE + NULL_BYTE];
-    char htmlFile[MAX_URL_SIZE + NULL_BYTE];
     int needAuthorization;
     int refetchTimes;
     struct URLInfo *nextNode;
