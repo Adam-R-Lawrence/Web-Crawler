@@ -3,6 +3,7 @@
  * Computer Systems (COMP30023) - Project 1
  * Adam Lawrence || arlawrence || 992684
  * arlawrence@student.unimelb.edu.au
+ *
  */
 
 // _GNU_SOURCE is used for the strcasestr function
@@ -39,7 +40,9 @@ int main(int argc,char *argv[]) {
     parseURL(NULL);
 
     //Store all but the first component of the hostname for future comparisons
-    strcpy(commandLineAllButFirstComponent, pointerTopURL->allButFirstComponent);
+    strcpy(commandLineAllButFirstComponent,
+            pointerTopURL->allButFirstComponent);
+
 
     //Variables for using the socket
     int socketFD;
@@ -48,44 +51,48 @@ int main(int argc,char *argv[]) {
     char recvBuff[RECEIVED_BUFFER_LENGTH] = {0};
     struct hostent *server;
 
-    int numberOfBytesRead;
-    int total;
     char *endOfHeaderPointer;
-    int index, isHeader;
+    int index, isHeader, numberOfBytesRead, total;
 
-    //Content Length Header
+    //Content Length Header variables
     char *contentLengthHeader;
     int contentLength, cli;
 
-    //Location Header (For 301)
+    //Location Header variables (For 301 status codes)
     char * locationHeader;
     char * endLocationHeader;
     int  lhi, elhi;
     char URLFor301[MAX_URL_SIZE+NULL_BYTE];
 
-    //Status Code
+    //Status Code variables
     char * pageStatusCode;
     int statusCode, sci;
 
-    //Content Type Header
+    //Content Type Header variables
     char *contentTypeHeader;
     char contentType[1000];
     int cti,scti;
 
     int commandLineURLParsed = FALSE;
-    int numberOfPagesFetched = 0;
+    int numberOfPagesFetched = 0, validToParse;
     URLInfo * currentURL;
 
-    while(numberOfPagesFetched != MAX_NUMBER_OF_PAGES_FETCHED && pointerBottomURL != NULL) {
+    while(numberOfPagesFetched != MAX_NUMBER_OF_PAGES_FETCHED
+            && pointerBottomURL != NULL) {
+
         total = 0;
         contentLength = -2;
         isHeader = TRUE;
+        validToParse = TRUE;
 
         //Get the URL to attempt to crawl
         currentURL = malloc(sizeof(URLInfo));
         dequeueURL(currentURL);
 
-        //Check if all but the first components of the current URL match with the command line URL
+        /*
+         * Check if all but the first components of the current URL
+         *      match with the command line URL
+         */
         if((strcmp(currentURL->allButFirstComponent, commandLineAllButFirstComponent) != 0)
                     && commandLineURLParsed == TRUE) {
 
@@ -160,6 +167,7 @@ int main(int argc,char *argv[]) {
             printf("http://%s%s\n",currentURL->hostname,currentURL->path);
         }
 
+        //Set memory for the buffer
         char * fullBuffer = strdup("");
 
         //Receive the response from the server
@@ -178,15 +186,15 @@ int main(int argc,char *argv[]) {
                 while(pageStatusCode[0] == ' ') {
                     pageStatusCode++;
                 }
-
                 sci = (int) (pageStatusCode - recvBuff);
                 statusCode = (int) strtol(&(recvBuff[sci]),NULL,10);
 
+
                 //Find the Content Type Header
                 if ((contentTypeHeader = strcasestr(recvBuff, CONTENT_TYPE)) == NULL) {
+                    validToParse = FALSE;
                     break;
                 }
-
                 scti = (int)( contentTypeHeader - recvBuff);
 
                 while(contentTypeHeader[0] != '\n'){
@@ -199,12 +207,15 @@ int main(int argc,char *argv[]) {
 
                 if(statusCode != 301) {
                     if ((strcasestr(contentType, VALID_MIME_TYPE) == NULL)) {
+                        validToParse = FALSE;
                         break;
                     }
                 }
 
+
                 //Find the Content Length Header
                 if ((contentLengthHeader = strcasestr(recvBuff, CONTENT_LENGTH)) == NULL) {
+                    validToParse = FALSE;
                     break;
                 }
                 contentLengthHeader += strlen(CONTENT_LENGTH);
@@ -212,7 +223,6 @@ int main(int argc,char *argv[]) {
                 while(contentLengthHeader[0] == ' ') {
                     contentLengthHeader++;
                 }
-
                 cli = (int) (contentLengthHeader - recvBuff);
                 contentLength = (int) strtol(&(recvBuff[cli]),NULL,10);
 
@@ -282,8 +292,9 @@ int main(int argc,char *argv[]) {
 
                } else {
                    //Ignore all other status codes, so don't crawl the web page
-                   goto error;
-               }
+                   validToParse = FALSE;
+                   break;
+                }
 
                 //Check to see if the end of the header is fully received
                 if (endOfHeaderPointer != NULL) {
@@ -316,13 +327,17 @@ int main(int argc,char *argv[]) {
 
         }
 
-        //If the file is not truncated we can now parse the HTML, if it is we omit this web page to be crawled
-        if(total == contentLength) {
+
+        /*
+         * If the file is not truncated we can now parse the HTML,
+         * if it is we omit this web page to be crawled.
+         * If the file is not valid, such as having a non valid mime-type
+         * or a non supported status code, do not crawl as well.
+         */
+        if(total == contentLength && validToParse == TRUE) {
             parseHTML(fullBuffer, currentURL);
         }
 
-
-        error:
 
         //Free buffers and close down the connection
         free(fullBuffer);
@@ -340,6 +355,10 @@ int main(int argc,char *argv[]) {
 
 /*
  *  Function to parse the HTML and extract URLs
+ *
+ *  No regular expressions were used as I discovered there was no need
+ *   for them, using pointers is enough.
+ *
  */
 void parseHTML(char buffer[], URLInfo * currentURL)
 {
@@ -373,6 +392,7 @@ void parseHTML(char buffer[], URLInfo * currentURL)
 
         //Place everything in the anchor tag into a string
         anchorLength = ei - si;
+        //FIX THIS/////
         anchor = malloc(MAX_URL_SIZE + NULL_BYTE + 10000);
         memcpy(anchor, &buffer[si], anchorLength);
         anchor[anchorLength] = NULL_BYTE_CHARACTER;
@@ -419,7 +439,6 @@ void parseHTML(char buffer[], URLInfo * currentURL)
             } else {
                 continue;
             }
-
 
 
             if (endURL != NULL) {
@@ -504,7 +523,6 @@ void parseURL(URLInfo * currentURL) {
 
     char * pointerURL = &(pointerTopURL->fullURL[0]);
 
-
     char * firstDot;
     int fdi;
 
@@ -570,10 +588,7 @@ void parseURL(URLInfo * currentURL) {
         return;
     }
 
-
     //Pointer is now pointing to the beginning of the hostname
-
-
 
     //Find the end of the hostname
     if ((firstSlash = strchr(pointerURL, '/'))!= NULL) {
@@ -606,7 +621,7 @@ void parseURL(URLInfo * currentURL) {
         strcpy(pointerTopURL->path,"/");
     }
 
-
+    //Get all but the first component of the hostname
     if((firstDot = strchr(pointerTopURL->hostname, '.')) != NULL) {
         firstDot = &(firstDot[1]);
         fdi = (int) (firstDot ? firstDot - pointerTopURL->hostname : -1);
