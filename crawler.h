@@ -8,6 +8,7 @@
 #ifndef CODE_CRAWLER_H
 #define CODE_CRAWLER_H
 
+
 /* Define Constants */
 #define PORT 80
 #define HTTP_REQUEST_HEADER "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n"

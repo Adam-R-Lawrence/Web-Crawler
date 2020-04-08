@@ -5,7 +5,10 @@
  * arlawrence@student.unimelb.edu.au
  */
 
+// _GNU_SOURCE is used for the strcasestr function
 #define _GNU_SOURCE
+
+//Libraries used
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -21,29 +24,19 @@ URLInfo *pointerTopURL = NULL;
 uniqueURL * pointerToHistory = NULL;
 char commandLineAllButFirstComponent[MAX_URL_SIZE + NULL_BYTE];
 
-
 int main(int argc,char *argv[]) {
 
     //Check if a URL was given
-    if (argc == 1){
+    if (argc == 1) {
 
          fprintf(stderr,"No URL was given\n");
          exit(EXIT_FAILURE);
 
     }
 
-    //Check if command line URL is valid
-    if (checkIfValidURL(argv[1]) == IS_VALID_URL){
-
-        enqueueURL(argv[1]);
-        parseURL(NULL);
-
-    } else {
-
-        fprintf(stderr,"Given URL is not Valid");
-        exit(EXIT_FAILURE);
-
-    }
+    //Enqueue the command line URL
+    enqueueURL(argv[1]);
+    parseURL(NULL);
 
     //Store all but the first component of the hostname for future comparisons
     strcpy(commandLineAllButFirstComponent, pointerTopURL->allButFirstComponent);
@@ -58,7 +51,7 @@ int main(int argc,char *argv[]) {
     int numberOfBytesRead;
     int total;
     char *endOfHeaderPointer;
-    int index;
+    int index, isHeader;
 
     //Content Length Header
     char *contentLengthHeader;
@@ -86,22 +79,16 @@ int main(int argc,char *argv[]) {
     while(numberOfPagesFetched != MAX_NUMBER_OF_PAGES_FETCHED && pointerBottomURL != NULL) {
         total = 0;
         contentLength = -2;
-        int isHeader = TRUE;
+        isHeader = TRUE;
 
         //Get the URL to attempt to crawl
         currentURL = malloc(sizeof(URLInfo));
         dequeueURL(currentURL);
 
-        ////Remove Later
-        //printf("\tFull URL: %s\n", currentURL->fullURL);
-        //printf("\tFirst Component: %s\n", currentURL->allButFirstComponent);
-        //printf("\tHostname: %s\n", currentURL->hostname);
-        //printf("\tPath: %s\n", currentURL->path);
-        ////
-
-
         //Check if all but the first components of the current URL match with the command line URL
-        if((strcmp(currentURL->allButFirstComponent, commandLineAllButFirstComponent) != 0) && commandLineURLParsed == TRUE){
+        if((strcmp(currentURL->allButFirstComponent, commandLineAllButFirstComponent) != 0)
+                    && commandLineURLParsed == TRUE) {
+
             free(currentURL);
             continue;
         }
@@ -115,10 +102,9 @@ int main(int argc,char *argv[]) {
             }
         }
 
-
-        //Details of the Server
+        //Hostname details of the Server
         server = gethostbyname(currentURL->hostname);
-        if(server == NULL){
+        if(server == NULL) {
             printf("NotValidHostname\n");
             free(currentURL);
             continue;
@@ -139,6 +125,7 @@ int main(int argc,char *argv[]) {
         //initialise send buffer
         memset(sendBuff, '0', sizeof(sendBuff));
 
+        //Information of the server
         server_address.sin_family = AF_INET;
         server_address.sin_port = htons(PORT);
         memcpy(&server_address.sin_addr.s_addr, server->h_addr, server->h_length);
@@ -151,12 +138,11 @@ int main(int argc,char *argv[]) {
         }
 
         //Send HTTP GET request to the server
-        if(currentURL->needAuthorization == TRUE){
+        if(currentURL->needAuthorization == TRUE) {
             sprintf(sendBuff, REQUEST_WITH_AUTHORIZATION, currentURL->path, currentURL->hostname, USERNAME);
         }else {
             sprintf(sendBuff, HTTP_REQUEST_HEADER, currentURL->path, currentURL->hostname, USERNAME);
         }
-
 
         if(send(socketFD, sendBuff, strlen(sendBuff), 0) < 0) {
             fprintf(stderr,"Error with sending GET request\n");
@@ -179,18 +165,17 @@ int main(int argc,char *argv[]) {
         //Receive the response from the server
         while (contentLength != total && (numberOfBytesRead = recv(socketFD, recvBuff, sizeof(recvBuff),0)) > 0) {
 
-
+            //Check if we are still reading the HTTP response headers
             if (isHeader == TRUE) {
                 endOfHeaderPointer = strstr(recvBuff, END_OF_HTTP_HEADER);
 
-
                 //Find the Status Code
-                if ((pageStatusCode = strcasestr(recvBuff, STATUS_CODE)) == NULL){
+                if ((pageStatusCode = strcasestr(recvBuff, STATUS_CODE)) == NULL) {
                     break;
                 }
                 pageStatusCode += strlen(STATUS_CODE);
 
-                while(pageStatusCode[0] == ' '){
+                while(pageStatusCode[0] == ' ') {
                     pageStatusCode++;
                 }
 
@@ -198,7 +183,7 @@ int main(int argc,char *argv[]) {
                 statusCode = (int) strtol(&(recvBuff[sci]),NULL,10);
 
                 //Find the Content Type Header
-                if ((contentTypeHeader = strcasestr(recvBuff, CONTENT_TYPE)) == NULL){
+                if ((contentTypeHeader = strcasestr(recvBuff, CONTENT_TYPE)) == NULL) {
                     break;
                 }
 
@@ -218,32 +203,31 @@ int main(int argc,char *argv[]) {
                     }
                 }
 
-
-
                 //Find the Content Length Header
-                if ((contentLengthHeader = strcasestr(recvBuff, CONTENT_LENGTH)) == NULL){
+                if ((contentLengthHeader = strcasestr(recvBuff, CONTENT_LENGTH)) == NULL) {
                     break;
                 }
-
                 contentLengthHeader += strlen(CONTENT_LENGTH);
 
-
-                while(contentLengthHeader[0] == ' '){
+                while(contentLengthHeader[0] == ' ') {
                     contentLengthHeader++;
                 }
 
                 cli = (int) (contentLengthHeader - recvBuff);
-
                 contentLength = (int) strtol(&(recvBuff[cli]),NULL,10);
 
 
+                if(statusCode == 200) {
+                    /*
+                     * If we receive a status code of 200, we are connecting to the web page with no issues,
+                     * Thus we can now crawl the html file it contains.
+                    */
+               } else if(statusCode == 503 ||statusCode == 504) {
 
-
-
-
-                if(statusCode == 200){
-                    //Success, All is good
-               } else if(statusCode == 503 ||statusCode == 504){
+                    /*
+                     * For web pages which return a temporary failure error; 503 and 504, we crawl the
+                     * error report page and we requeue the URL to try again later.
+                    */
 
                     //The page at the current URL is currently unavailable, thus we must refetch it
                     enqueueURL(currentURL->fullURL);
@@ -251,7 +235,7 @@ int main(int argc,char *argv[]) {
 
                    pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
 
-               } else if(statusCode == 401){
+               } else if(statusCode == 401) {
 
                    //The current URL needs to be refetched again, but with authorization so we may access it.
                    enqueueURL(currentURL->fullURL);
@@ -259,24 +243,23 @@ int main(int argc,char *argv[]) {
                    pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
                    pointerTopURL->needAuthorization = TRUE;
 
-               } else if (statusCode == 301){
+               } else if (statusCode == 301) {
 
 
                    //The web page has been redirected, thus get the URL for the redirection and add it to the queue
-                   if ((locationHeader = strcasestr(recvBuff, LOCATION_HEADER)) == NULL){
+                   if ((locationHeader = strcasestr(recvBuff, LOCATION_HEADER)) == NULL) {
                        break;
                    }
 
                     locationHeader += strlen(LOCATION_HEADER);
-                   while(locationHeader[0] == ' '){
+                   while(locationHeader[0] == ' ') {
                        locationHeader++;
                    }
 
 
                     endLocationHeader = locationHeader;
 
-
-                    while(endLocationHeader[0] != '\r'){
+                    while(endLocationHeader[0] != '\r') {
                        endLocationHeader++;
                    }
 
@@ -284,17 +267,20 @@ int main(int argc,char *argv[]) {
                     lhi = (int) (locationHeader - recvBuff);
                     elhi = (int) (endLocationHeader - recvBuff);
 
-
-
                     memcpy(URLFor301, &recvBuff[lhi], elhi - lhi);
-                   URLFor301[elhi - lhi] = NULL_BYTE_CHARACTER;
+                    URLFor301[elhi - lhi] = NULL_BYTE_CHARACTER;
 
                     enqueueURL(URLFor301);
-                   parseURL(currentURL);
+                    parseURL(currentURL);
 
-               } else if (statusCode == 404 ||statusCode == 410 ||statusCode == 414){
+               } else if (statusCode == 404 ||statusCode == 410 ||statusCode == 414) {
 
-               } else{
+                    /*
+                     * For web pages which return a permanent error; 404,410 and 414, we crawl the
+                     * error report page.
+                    */
+
+               } else {
                    //Ignore all other status codes, so don't crawl the web page
                    goto error;
                }
@@ -324,22 +310,19 @@ int main(int argc,char *argv[]) {
             memset(recvBuff, 0, strlen(recvBuff));
 
             //If the total bytes received
-            if(total >= contentLength){
+            if(total >= contentLength) {
                 close(socketFD);
             }
 
         }
 
+        //If the file is not truncated we can now parse the HTML, if it is we omit this web page to be crawled
         if(total == contentLength) {
             parseHTML(fullBuffer, currentURL);
         }
 
 
         error:
-
-
-
-
 
         //Free buffers and close down the connection
         free(fullBuffer);
@@ -351,10 +334,6 @@ int main(int argc,char *argv[]) {
 
     //Clear the History
     clearHistory();
-
-    ////REMOVE LATER////
-    //printf("NUMBER OF PAGES %d\n",numberOfPagesFetched);
-    ////////////////////
 
     return 0;
 }
@@ -385,7 +364,7 @@ void parseHTML(char buffer[], URLInfo * currentURL)
         si = (int) (startAnchor ? startAnchor - buffer : -1);
 
 
-        if((endAnchor = strcasestr(startAnchor, ">")) == NULL){
+        if((endAnchor = strcasestr(startAnchor, ">")) == NULL) {
             buffer = startAnchor + 2;
             continue;
         }
@@ -407,7 +386,7 @@ void parseHTML(char buffer[], URLInfo * currentURL)
             startURL = &(startURL[1]);
 
             //Find the Start of the URL, this comes after the ' or " character
-            while(startURL[0] == ' '){
+            while(startURL[0] == ' ') {
                 startURL = &(startURL[1]);
             }
             startURL = &(startURL[1]);
@@ -422,19 +401,19 @@ void parseHTML(char buffer[], URLInfo * currentURL)
             apostrophe = strstr(startURL, "\'");
             ai = (int) (apostrophe ? apostrophe - anchor : -1);
 
-            if(qi > 0 && ai > 0){
+            if(qi > 0 && ai > 0) {
 
-                if (qi < ai){
+                if (qi < ai) {
                     endURL = quotationMark;
-                } else if (qi > ai){
+                } else if (qi > ai) {
                     endURL = apostrophe;
                 }
 
             }
-            else if (qi < 0){
+            else if (qi < 0) {
                 endURL = apostrophe;
 
-            } else if (ai < 0){
+            } else if (ai < 0) {
 
                 endURL = quotationMark;
             } else {
@@ -538,37 +517,24 @@ void parseURL(URLInfo * currentURL) {
     char * lastSlash;
     char * temp;
 
-    //Get the html file name
-    if((strcasestr(pointerTopURL->fullURL,".html") != NULL) && (strchr(pointerTopURL->fullURL,'/') == NULL)){
-
-
+    //The URL might be a relative stand alone .html file, check if it is
+    if((strcasestr(pointerTopURL->fullURL,".html") != NULL)
+                    && (strchr(pointerTopURL->fullURL,'/') == NULL)) {
 
         lastSlash = currentURL->path;
 
-        while((temp = strchr(lastSlash,'/')) != NULL){
+        while((temp = strchr(lastSlash,'/')) != NULL) {
             ++temp;
             lastSlash = temp;
         }
 
-
-
-
-
         fsi = (int) (lastSlash - currentURL->path);
 
-
         memcpy(pointerTopURL->path, currentURL->path, fsi);
-
-
         strcat(pointerTopURL->path, pointerTopURL->fullURL);
-
-
 
         strcpy(pointerTopURL->hostname,currentURL->hostname);
         strcpy(pointerTopURL->allButFirstComponent, currentURL->allButFirstComponent);
-
-
-
 
         return;
     }
@@ -579,7 +545,7 @@ void parseURL(URLInfo * currentURL) {
         pointerURL = &(pointerTopURL->fullURL[strlen("http://")]);
 
     }
-        //Check if URL is Absolute (Implied Protocol)
+    //Check if URL is Absolute (Implied Protocol)
     else if ((pointerTopURL->fullURL[0] == '/') && (pointerTopURL->fullURL[1] == '/')) {
 
         //If so move pointer to the character after the last slash
@@ -587,8 +553,8 @@ void parseURL(URLInfo * currentURL) {
 
 
     }
-        //Check if URL is Absolute (Implied Protocol and Hostname)
-    else if (pointerTopURL->fullURL[0] == '/'){
+    //Check if URL is Absolute (Implied Protocol and Hostname)
+    else if (pointerTopURL->fullURL[0] == '/') {
 
         strcpy(pointerTopURL->hostname,currentURL->hostname);
         strcpy(pointerTopURL->allButFirstComponent, currentURL->allButFirstComponent);
@@ -629,9 +595,8 @@ void parseURL(URLInfo * currentURL) {
 
 
     }
-    else
-        //If above == NUll that means there is no path
-    {
+    //If above == NUll that means there is no path
+    else {
         firstSlash = strchr(pointerURL, '\0');
         fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
         memcpy(pointerTopURL->hostname, &pointerURL[0], fsi);
@@ -648,7 +613,7 @@ void parseURL(URLInfo * currentURL) {
 
         memcpy(pointerTopURL->allButFirstComponent, firstDot, strlen(pointerTopURL->hostname) - fdi);
         pointerTopURL->allButFirstComponent[strlen(pointerTopURL->hostname) - fdi] = NULL_BYTE_CHARACTER;
-    } else{
+    } else {
         strcpy(pointerTopURL->allButFirstComponent,pointerTopURL->hostname);
         pointerTopURL->path[strlen(pointerTopURL->allButFirstComponent)] = NULL_BYTE_CHARACTER;
     }
@@ -657,22 +622,20 @@ void parseURL(URLInfo * currentURL) {
 /*
  *  Enqueue an URL to the queue
  */
-void enqueueURL(char *URL){
+void enqueueURL(char *URL) {
     URLInfo *TempPointer = malloc(sizeof(URLInfo));
 
-    if(TempPointer == NULL){
+    if(TempPointer == NULL) {
         return;
     }
 
     strcpy(TempPointer->fullURL,URL);
     TempPointer->nextNode = NULL;
 
-    if(pointerBottomURL == NULL)
-    {
+    if(pointerBottomURL == NULL) {
         TempPointer = pointerBottomURL = TempPointer;
     }
-    else
-    {
+    else {
         pointerTopURL->nextNode = TempPointer;
     }
     pointerTopURL = TempPointer;
@@ -685,9 +648,9 @@ void enqueueURL(char *URL){
 /*
  *  Dequeue an URL from the queue
  */
-void dequeueURL(URLInfo *toFetchURL){
+void dequeueURL(URLInfo *toFetchURL) {
 
-    if(pointerBottomURL == NULL){
+    if(pointerBottomURL == NULL) {
         return;
     }
 
@@ -703,7 +666,7 @@ void dequeueURL(URLInfo *toFetchURL){
     pointerBottomURL = pointerBottomURL->nextNode;
     free(TempPointer);
 
-    if(pointerBottomURL == NULL){
+    if(pointerBottomURL == NULL) {
         pointerTopURL = NULL;
     }
 
@@ -713,13 +676,15 @@ void dequeueURL(URLInfo *toFetchURL){
 /*
  *  Function to check all the unique URLs that have been visited already
  */
-int checkHistory(URLInfo * URLtoCheck){
+int checkHistory(URLInfo * URLtoCheck) {
     uniqueURL * tempPointer = pointerToHistory;
     uniqueURL * newUniqueURL;
 
-    //Check the URL against the existing HISTORY
-    while(tempPointer != NULL){
-        if((strcmp(URLtoCheck->hostname,tempPointer->URLhostname) == 0) && (strcmp(URLtoCheck->path,tempPointer->URLpath) == 0)){
+    //Check the URL against the existing history
+    while(tempPointer != NULL) {
+        if((strcmp(URLtoCheck->hostname,tempPointer->URLhostname) == 0)
+                    && (strcmp(URLtoCheck->path,tempPointer->URLpath) == 0)) {
+
             return IS_NOT_VALID_URL;
         }
 
@@ -744,8 +709,8 @@ int checkHistory(URLInfo * URLtoCheck){
 void clearHistory() {
     uniqueURL * tempPointer;
 
-    while (pointerToHistory != NULL)
-    {
+    while (pointerToHistory != NULL) {
+
         tempPointer = pointerToHistory;
         pointerToHistory = pointerToHistory->nextUniqueURL;
         free(tempPointer);
