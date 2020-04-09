@@ -56,22 +56,22 @@ int main(int argc,char *argv[]) {
 
     //Content Length Header variables
     char *contentLengthHeader;
-    int contentLength, cli;
+    int contentLength, clIndex;
 
     //Location Header variables (For 301 status codes)
     char * locationHeader;
     char * endLocationHeader;
-    int  lhi, elhi;
+    int  lhIndex, elhIndex;
     char URLFor301[MAX_URL_SIZE+NULL_BYTE];
 
     //Status Code variables
     char * pageStatusCode;
-    int statusCode, sci;
+    int statusCode, scIndex;
 
     //Content Type Header variables
     char *contentTypeHeader;
-    char contentType[1000];
-    int cti,scti;
+    char contentType[4];
+    int ectIndex, ctIndex;
 
     int commandLineURLParsed = FALSE;
     int numberOfPagesFetched = 0, validToParse;
@@ -186,8 +186,8 @@ int main(int argc,char *argv[]) {
                 while(pageStatusCode[0] == ' ') {
                     pageStatusCode++;
                 }
-                sci = (int) (pageStatusCode - recvBuff);
-                statusCode = (int) strtol(&(recvBuff[sci]),NULL,10);
+                scIndex = (int) (pageStatusCode - recvBuff);
+                statusCode = (int) strtol(&(recvBuff[scIndex]), NULL, 10);
 
 
                 //Find the Content Type Header
@@ -195,15 +195,15 @@ int main(int argc,char *argv[]) {
                     validToParse = FALSE;
                     break;
                 }
-                scti = (int)( contentTypeHeader - recvBuff);
+                ctIndex = (int)(contentTypeHeader - recvBuff);
 
                 while(contentTypeHeader[0] != '\n'){
                     contentTypeHeader++;
                 }
-                cti = (int) (contentTypeHeader - recvBuff);
+                ectIndex = (int) (contentTypeHeader - recvBuff);
 
-                memcpy(contentType, &recvBuff[scti], cti-scti);
-                contentType[cti-scti] = NULL_BYTE_CHARACTER;
+                memcpy(contentType, &recvBuff[ctIndex], ectIndex - ctIndex);
+                contentType[ectIndex - ctIndex] = NULL_BYTE_CHARACTER;
 
                 //If content type is not text/html, do not crawl
                 if(statusCode != 301) {
@@ -223,20 +223,30 @@ int main(int argc,char *argv[]) {
                 while(contentLengthHeader[0] == ' ') {
                     contentLengthHeader++;
                 }
-                cli = (int) (contentLengthHeader - recvBuff);
-                contentLength = (int) strtol(&(recvBuff[cli]),NULL,10);
+                clIndex = (int) (contentLengthHeader - recvBuff);
+                contentLength = (int) strtol(&(recvBuff[clIndex]), NULL, 10);
 
 
                 if(statusCode == 200) {
                     /*
                      * If we receive a status code of 200, we are connecting to the web page with no issues,
                      * Thus we can now crawl the html file it contains.
+                     *
                     */
                } else if(statusCode == 503 ||statusCode == 504) {
 
                     /*
                      * For web pages which return a temporary failure error; 503 and 504, we crawl the
                      * error report page and we requeue the URL to try again later.
+                     *
+                     *  - A 503 Status code means that he server is unable to our GET request due to a
+                     *  temporary overload, this should be alleviated after a short delay, thus it is
+                     *  only temporary failure.
+                     *
+                     *  - A 504 Status code means that the page we are trying to load did not get a
+                     *  timely response from another server 'upstream', this should also be alleviated
+                     *  after a short delay, thus it is only a temporary failure.
+                     *
                     */
 
                     //The page at the current URL is currently unavailable, thus we must refetch it
@@ -275,11 +285,11 @@ int main(int argc,char *argv[]) {
                    }
 
 
-                    lhi = (int) (locationHeader - recvBuff);
-                    elhi = (int) (endLocationHeader - recvBuff);
+                    lhIndex = (int) (locationHeader - recvBuff);
+                    elhIndex = (int) (endLocationHeader - recvBuff);
 
-                    memcpy(URLFor301, &recvBuff[lhi], elhi - lhi);
-                    URLFor301[elhi - lhi] = NULL_BYTE_CHARACTER;
+                    memcpy(URLFor301, &recvBuff[lhIndex], elhIndex - lhIndex);
+                    URLFor301[elhIndex - lhIndex] = NULL_BYTE_CHARACTER;
 
                     enqueueURL(URLFor301);
                     parseURL(currentURL);
@@ -289,7 +299,21 @@ int main(int argc,char *argv[]) {
                     /*
                      * For web pages which return a permanent error; 404,410 and 414, we crawl the
                      * error report page.
+                     *
+                     *  - A 404 status code means that the server found nothing matching the request
+                     *    URI. Although no indication is given where it is temporary or permanent. But
+                     *    to be cautious we should handle it as a permanent
+                     *
+                     *  - A 410 status code means the same as a 404 status code except for the fact
+                     *    that we definitely know it is never going to be found. Thus we may handle it
+                     *    as a permanent failure.
+                     *
+                     *  - A 414 status code means that the URL we used to request the web page is too long.
+                     *    As we do not know any other URL to access the web page, we should handle this
+                     *    status code as a permanent failure.
+                     *
                     */
+
 
                } else {
                    //Ignore all other status codes, so don't crawl the web page
@@ -527,8 +551,7 @@ void parseURL(URLInfo * currentURL) {
     int eURLi;
 
     char * lastSlash;
-    char * temp;
-    char temp2[MAX_URL_SIZE+NULL_BYTE];
+    char * placeholder;
 
     //The URL might be a relative stand alone .html file, check if it is
     if((strcasestr(pointerTopURL->fullURL,".html") != NULL)
@@ -536,9 +559,9 @@ void parseURL(URLInfo * currentURL) {
 
         lastSlash = currentURL->path;
 
-        while((temp = strchr(lastSlash,'/')) != NULL) {
-            ++temp;
-            lastSlash = temp;
+        while((placeholder = strchr(lastSlash, '/')) != NULL) {
+            ++placeholder;
+            lastSlash = placeholder;
         }
 
         fsi = (int) (lastSlash - currentURL->path);
@@ -571,17 +594,14 @@ void parseURL(URLInfo * currentURL) {
         strcpy(pointerTopURL->hostname,currentURL->hostname);
         strcpy(pointerTopURL->allButFirstComponent, currentURL->allButFirstComponent);
 
-        pointerURL = &(pointerTopURL->fullURL[1]);
+        pointerURL = &(pointerTopURL->fullURL[0]);
 
 
         firstSlash = strchr(pointerURL, '\0');
         fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
-        memcpy(temp2, &pointerURL[0], fsi);
-        temp2[fsi] = NULL_BYTE_CHARACTER;
+        memcpy(pointerTopURL->path, &pointerURL[0], fsi);
+        pointerTopURL->path[fsi] = NULL_BYTE_CHARACTER;
 
-        pointerTopURL->path[0] = '/';
-        pointerTopURL->path[1] = '\0';
-        strcat(pointerTopURL->path, temp2);
 
 
 
@@ -698,7 +718,7 @@ int checkHistory(URLInfo * URLtoCheck) {
         if((strcmp(URLtoCheck->hostname,tempPointer->URLhostname) == 0)
                     && (strcmp(URLtoCheck->path,tempPointer->URLpath) == 0)) {
 
-            return IS_NOT_VALID_URL;
+           return IS_NOT_VALID_URL;
         }
 
         tempPointer = tempPointer->nextUniqueURL;
