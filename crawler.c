@@ -112,7 +112,7 @@ int main(int argc,char *argv[]) {
         //Hostname details of the Server
         server = gethostbyname(currentURL->hostname);
         if(server == NULL) {
-            printf("NotValidHostname\n");
+            fprintf(stderr,"NotValidHostname\n");
             free(currentURL);
             continue;
         }
@@ -205,13 +205,13 @@ int main(int argc,char *argv[]) {
                 memcpy(contentType, &recvBuff[scti], cti-scti);
                 contentType[cti-scti] = NULL_BYTE_CHARACTER;
 
+                //If content type is not text/html, do not crawl
                 if(statusCode != 301) {
                     if ((strcasestr(contentType, VALID_MIME_TYPE) == NULL)) {
                         validToParse = FALSE;
                         break;
                     }
                 }
-
 
                 //Find the Content Length Header
                 if ((contentLengthHeader = strcasestr(recvBuff, CONTENT_LENGTH)) == NULL) {
@@ -240,8 +240,9 @@ int main(int argc,char *argv[]) {
                     */
 
                     //The page at the current URL is currently unavailable, thus we must refetch it
+
                     enqueueURL(currentURL->fullURL);
-                   parseURL(currentURL);
+                    parseURL(currentURL);
 
                    pointerTopURL->refetchTimes = currentURL->refetchTimes + 1;
 
@@ -261,7 +262,7 @@ int main(int argc,char *argv[]) {
                        break;
                    }
 
-                    locationHeader += strlen(LOCATION_HEADER);
+                   locationHeader += strlen(LOCATION_HEADER);
                    while(locationHeader[0] == ' ') {
                        locationHeader++;
                    }
@@ -324,9 +325,7 @@ int main(int argc,char *argv[]) {
             if(total >= contentLength) {
                 close(socketFD);
             }
-
         }
-
 
         /*
          * If the file is not truncated we can now parse the HTML,
@@ -375,7 +374,6 @@ void parseHTML(char buffer[], URLInfo * currentURL)
     char * startAnchor;
     char * endAnchor;
     int anchorLength;
-
     char * anchor;
 
 
@@ -392,7 +390,6 @@ void parseHTML(char buffer[], URLInfo * currentURL)
 
         //Place everything in the anchor tag into a string
         anchorLength = ei - si;
-        //FIX THIS/////
         anchor = malloc(MAX_URL_SIZE + NULL_BYTE + 10000);
         memcpy(anchor, &buffer[si], anchorLength);
         anchor[anchorLength] = NULL_BYTE_CHARACTER;
@@ -412,7 +409,6 @@ void parseHTML(char buffer[], URLInfo * currentURL)
             startURL = &(startURL[1]);
 
             si = (int) (startURL - anchor);
-
 
             //Find what ends the URL: either a quotation mark or a apostrophe
             quotationMark = strstr(startURL, "\"");
@@ -440,7 +436,6 @@ void parseHTML(char buffer[], URLInfo * currentURL)
                 continue;
             }
 
-
             if (endURL != NULL) {
                 ei = (int) (endURL - anchor);
 
@@ -462,7 +457,6 @@ void parseHTML(char buffer[], URLInfo * currentURL)
         free(anchor);
         buffer = endAnchor;
     }
-
 }
 
 /*
@@ -534,6 +528,7 @@ void parseURL(URLInfo * currentURL) {
 
     char * lastSlash;
     char * temp;
+    char temp2[MAX_URL_SIZE+NULL_BYTE];
 
     //The URL might be a relative stand alone .html file, check if it is
     if((strcasestr(pointerTopURL->fullURL,".html") != NULL)
@@ -556,7 +551,6 @@ void parseURL(URLInfo * currentURL) {
 
         return;
     }
-
     //Check if URL is Absolute (Fully Specified)
     if(strcasestr(pointerTopURL->fullURL,"http://") != NULL) {
         //If so move pointer to the character after the last /
@@ -582,8 +576,14 @@ void parseURL(URLInfo * currentURL) {
 
         firstSlash = strchr(pointerURL, '\0');
         fsi = (int) (firstSlash ? firstSlash - pointerURL : -1);
-        memcpy(pointerTopURL->path, &pointerURL[0], fsi);
-        pointerTopURL->path[fsi] = NULL_BYTE_CHARACTER;
+        memcpy(temp2, &pointerURL[0], fsi);
+        temp2[fsi] = NULL_BYTE_CHARACTER;
+
+        pointerTopURL->path[0] = '/';
+        pointerTopURL->path[1] = '\0';
+        strcat(pointerTopURL->path, temp2);
+
+
 
         return;
     }
@@ -676,7 +676,6 @@ void dequeueURL(URLInfo *toFetchURL) {
     toFetchURL->refetchTimes = pointerBottomURL->refetchTimes;
     toFetchURL->needAuthorization = pointerBottomURL->needAuthorization;
 
-
     URLInfo *TempPointer = pointerBottomURL;
     pointerBottomURL = pointerBottomURL->nextNode;
     free(TempPointer);
@@ -684,7 +683,6 @@ void dequeueURL(URLInfo *toFetchURL) {
     if(pointerBottomURL == NULL) {
         pointerTopURL = NULL;
     }
-
 }
 
 
@@ -730,6 +728,4 @@ void clearHistory() {
         pointerToHistory = pointerToHistory->nextUniqueURL;
         free(tempPointer);
     }
-
 }
-
